@@ -1,0 +1,238 @@
+hive> set hive.cli.print.current.db=true;
+
+hive (default)> create database stocks;
+OK
+Time taken: 1.387 seconds
+hive (default)> show databases;
+OK
+default
+stocks
+tpcds
+Time taken: 0.008 seconds, Fetched: 3 row(s)
+hive (default)> use stocks;
+OK
+Time taken: 0.109 seconds
+---------------------------------------------------
+Create Table txnrecords in HIVE
+----------------------------------------------------
+hive (stocks)> create table txnrecords(txnno INT, txndate STRING,custno INT,amount DOUBLE, category STRING,product STRING,city STRING,state STRING,spendby string)
+             > row format delimited fields terminated by ','
+             > stored as textfile;
+OK
+Time taken: 0.28 seconds
+---------------------------------------------------
+Create Table customer
+----------------------------------------------------
+hive (stocks)> create table customer(custno INT, firstname string, lastname string, age int, profession string) 
+             > row format delimited fields terminated by ','
+             > stored as textfile;
+OK
+Time taken: 0.053 seconds
+hive (stocks)> show tables;
+OK
+customer
+txnrecords
+Time taken: 0.013 seconds, Fetched: 2 row(s)
+---------------------------------------------------
+Insert data from cust_details file into customer table
+----------------------------------------------------
+hive (stocks)> load data local inpath '/home/cloudera/JuleeCode/cust_details' into table customer;
+Loading data to table stocks.customer
+Table stocks.customer stats: [numFiles=1, totalSize=366]
+OK
+Time taken: 0.596 second
+hive (stocks)> select * from customer limit 5;
+OK
+4000001	Kristina	Chung	55	Pilot
+4000002	Paige	Chen	74	Teacher
+4000003	Sherri	Melton	34	Firefighter
+4000004	Gretchen	Hill	66	Computer hardware engineer
+4000005	Karen	Puckett	74	Lawyer
+Time taken: 0.07 seconds, Fetched: 5 row(s)
+---------------------------------------------------
+Insert data from txns1.txt file into txnrecords table
+----------------------------------------------------
+hive (stocks)> load data local inpath '/home/cloudera/JuleeCode/txns1.txt' into table txnrecords; 
+Loading data to table stocks.txnrecords
+Table stocks.txnrecords stats: [numFiles=1, totalSize=4468138]
+OK
+Time taken: 0.238 seconds
+hive (stocks)> select * from txnrecords limit 5;
+OK
+0	06-26-2011	4007024	40.33	Exercise & Fitness	Cardio Machine Accessories	Clarksville	Tennessee	credit
+1	05-26-2011	4006742	198.44	Exercise & Fitness	Weightlifting Gloves	Long Beach	California	credit
+2	06-01-2011	4009775	5.58	Exercise & Fitness	Weightlifting Machine AccessoriesAnaheim	California	credit
+3	06-05-2011	4002199	198.19	Gymnastics	Gymnastics Rings	Milwaukee	Wisconsin	credit
+4	12-17-2011	4002613	98.81	Team Sports	Field Hockey	Nashville  	Tennesseecredit
+Time taken: 0.047 seconds, Fetched: 5 row(s)
+hive (stocks)> 
+             > 
+             > show tables;
+OK
+customer
+txnrecords
+Time taken: 0.019 seconds, Fetched: 2 row(s)
+------------------------------------------------------------------------------------
+Create table out1
+-------------------------------------------------------------------------------------
+hive (stocks)> create table out1 (custno int,firstname string, age int, profession string, amount double, product string)
+             > row format delimited fields terminated by ','
+             > ;
+OK
+Time taken: 0.059 seconds
+------------------------------------------------------------------------------------
+Insert data into table out1 from tables(customer & txnrecords) using join operation 
+-------------------------------------------------------------------------------------
+hive (stocks)> 
+             > 
+             > insert overwrite table out1
+             > select a.custno ,a.firstname , a.age, a.profession, b.amount, b.product from customer a JOIN txnrecords b  ON a.custno=b.custno;
+Query ID = cloudera_20180216112929_3ddfe38f-606e-458d-a075-68a8985f19bc
+Total jobs = 1
+Execution log at: /tmp/cloudera/cloudera_20180216112929_3ddfe38f-606e-458d-a075-68a8985f19bc.log
+2018-02-16 11:29:42	Starting to launch local task to process map join;	maximum memory = 1013645312
+2018-02-16 11:29:44	Dump the side-table for tag: 0 with group count: 10 into file: file:/tmp/cloudera/3bbcf4a1-ada9-4358-9265-c1d842b5b66c/hive_2018-02-16_11-29-38_011_8616856831602749379-1/-local-10002/HashTable-Stage-4/MapJoin-mapfile00--.hashtable
+2018-02-16 11:29:44	Uploaded 1 File to: file:/tmp/cloudera/3bbcf4a1-ada9-4358-9265-c1d842b5b66c/hive_2018-02-16_11-29-38_011_8616856831602749379-1/-local-10002/HashTable-Stage-4/MapJoin-mapfile00--.hashtable (669 bytes)
+2018-02-16 11:29:44	End of local task; Time Taken: 1.313 sec.
+Execution completed successfully
+MapredLocal task succeeded
+Launching Job 1 out of 1
+Number of reduce tasks is set to 0 since there's no reduce operator
+Starting Job = job_1518584060083_0002, Tracking URL = http://quickstart.cloudera:8088/proxy/application_1518584060083_0002/
+Kill Command = /usr/lib/hadoop/bin/hadoop job  -kill job_1518584060083_0002
+Hadoop job information for Stage-4: number of mappers: 1; number of reducers: 0
+2018-02-16 11:29:51,726 Stage-4 map = 0%,  reduce = 0%
+2018-02-16 11:29:59,269 Stage-4 map = 100%,  reduce = 0%, Cumulative CPU 1.92 sec
+MapReduce Total cumulative CPU time: 1 seconds 920 msec
+Ended Job = job_1518584060083_0002
+Loading data to table stocks.out1
+Table stocks.out1 stats: [numFiles=1, numRows=41, totalSize=1905, rawDataSize=1864]
+MapReduce Jobs Launched: 
+Stage-Stage-4: Map: 1   Cumulative CPU: 1.92 sec   HDFS Read: 4474944 HDFS Write: 1974 SUCCESS
+Total MapReduce CPU Time Spent: 1 seconds 920 msec
+OK
+Time taken: 22.631 seconds
+-----------------------------------------------------------
+Query out1 table
+-----------------------------------------------------------
+hive (stocks)> select * from out1 limit 5;
+OK
+4000001	Kristina	55	Pilot	92.88	Dice & Dice Sets
+4000005	Karen	74	Lawyer	173.38	Bingo Sets
+4000001	Kristina	55	Pilot	180.35	Water Tables
+4000009	Malcolm	39	Artist	138.26	Pogo Sticks
+4000004	Gretchen	66	Computer hardware engineer	152.25	Snowshoeing
+Time taken: 0.041 seconds, Fetched: 5 row(s)
+hive (stocks)> 
+
+------------------------------------------------------------------------------------
+Create table out1
+-------------------------------------------------------------------------------------
+hive (stocks)> create table out1 (custno int,firstname string, age int, profession string, amount double, product string)
+             > row format delimited fields terminated by ','
+             > ;
+OK
+Time taken: 0.059 seconds
+------------------------------------------------------------------------------------
+Insert data into table out1 from tables(customer & txnrecords) using join operation 
+-------------------------------------------------------------------------------------
+hive (stocks)> 
+             > 
+             > insert overwrite table out1
+             > select a.custno ,a.firstname , a.age, a.profession, b.amount, b.product from customer a JOIN txnrecords b  ON a.custno=b.custno;
+Query ID = cloudera_20180216112929_3ddfe38f-606e-458d-a075-68a8985f19bc
+Total jobs = 1
+Execution log at: /tmp/cloudera/cloudera_20180216112929_3ddfe38f-606e-458d-a075-68a8985f19bc.log
+2018-02-16 11:29:42	Starting to launch local task to process map join;	maximum memory = 1013645312
+2018-02-16 11:29:44	Dump the side-table for tag: 0 with group count: 10 into file: file:/tmp/cloudera/3bbcf4a1-ada9-4358-9265-c1d842b5b66c/hive_2018-02-16_11-29-38_011_8616856831602749379-1/-local-10002/HashTable-Stage-4/MapJoin-mapfile00--.hashtable
+2018-02-16 11:29:44	Uploaded 1 File to: file:/tmp/cloudera/3bbcf4a1-ada9-4358-9265-c1d842b5b66c/hive_2018-02-16_11-29-38_011_8616856831602749379-1/-local-10002/HashTable-Stage-4/MapJoin-mapfile00--.hashtable (669 bytes)
+2018-02-16 11:29:44	End of local task; Time Taken: 1.313 sec.
+Execution completed successfully
+MapredLocal task succeeded
+Launching Job 1 out of 1
+Number of reduce tasks is set to 0 since there's no reduce operator
+Starting Job = job_1518584060083_0002, Tracking URL = http://quickstart.cloudera:8088/proxy/application_1518584060083_0002/
+Kill Command = /usr/lib/hadoop/bin/hadoop job  -kill job_1518584060083_0002
+Hadoop job information for Stage-4: number of mappers: 1; number of reducers: 0
+2018-02-16 11:29:51,726 Stage-4 map = 0%,  reduce = 0%
+2018-02-16 11:29:59,269 Stage-4 map = 100%,  reduce = 0%, Cumulative CPU 1.92 sec
+MapReduce Total cumulative CPU time: 1 seconds 920 msec
+Ended Job = job_1518584060083_0002
+Loading data to table stocks.out1
+Table stocks.out1 stats: [numFiles=1, numRows=41, totalSize=1905, rawDataSize=1864]
+MapReduce Jobs Launched: 
+Stage-Stage-4: Map: 1   Cumulative CPU: 1.92 sec   HDFS Read: 4474944 HDFS Write: 1974 SUCCESS
+Total MapReduce CPU Time Spent: 1 seconds 920 msec
+OK
+Time taken: 22.631 seconds
+-----------------------------------------------------------
+Query out1 table
+-----------------------------------------------------------
+hive (stocks)> select * from out1 limit 5;
+OK
+4000001	Kristina	55	Pilot	92.88	Dice & Dice Sets
+4000005	Karen	74	Lawyer	173.38	Bingo Sets
+4000001	Kristina	55	Pilot	180.35	Water Tables
+4000009	Malcolm	39	Artist	138.26	Pogo Sticks
+4000004	Gretchen	66	Computer hardware engineer	152.25	Snowshoeing
+Time taken: 0.041 seconds, Fetched: 5 row(s)
+hive (stocks)> 
+
+-----------------------------------------------------------
+Create table out2 with the same column name as in out1 including one more extra column. 
+-----------------------------------------------------------
+hive (stocks)> create table out2 (custno int,firstname string, age int, profession string, amount double, product string, AgeCase string)
+             > row format delimited fields terminated by ',';
+OK
+Time taken: 0.117 seconds
+-----------------------------------------------------------
+Insert records into table out2 from table out1 with one more case column.
+-----------------------------------------------------------
+hive (stocks)> insert overwrite table out2
+             > select *,case
+             > when age<30 then 'low'
+             > when age>=30 and age<50 then 'midium'
+             > when age>=50 then 'old'
+             > else 'others'
+             > end
+             > from out1;
+Query ID = cloudera_20180216123838_0ba3894f-feee-431c-a7d8-9ea1321555f1
+Total jobs = 3
+Launching Job 1 out of 3
+Number of reduce tasks is set to 0 since there's no reduce operator
+Starting Job = job_1518584060083_0003, Tracking URL = http://quickstart.cloudera:8088/proxy/application_1518584060083_0003/
+Kill Command = /usr/lib/hadoop/bin/hadoop job  -kill job_1518584060083_0003
+Hadoop job information for Stage-1: number of mappers: 1; number of reducers: 0
+2018-02-16 12:38:48,463 Stage-1 map = 0%,  reduce = 0%
+2018-02-16 12:38:56,095 Stage-1 map = 100%,  reduce = 0%, Cumulative CPU 1.5 sec
+MapReduce Total cumulative CPU time: 1 seconds 500 msec
+Ended Job = job_1518584060083_0003
+Stage-4 is selected by condition resolver.
+Stage-3 is filtered out by condition resolver.
+Stage-5 is filtered out by condition resolver.
+Moving data to: hdfs://quickstart.cloudera:8020/user/hive/warehouse/stocks.db/out2/.hive-staging_hive_2018-02-16_12-38-40_628_8873149728620869245-1/-ext-10000
+Loading data to table stocks.out2
+Table stocks.out2 stats: [numFiles=1, numRows=41, totalSize=2120, rawDataSize=2079]
+MapReduce Jobs Launched: 
+Stage-Stage-1: Map: 1   Cumulative CPU: 1.5 sec   HDFS Read: 6243 HDFS Write: 2189 SUCCESS
+Total MapReduce CPU Time Spent: 1 seconds 500 msec
+OK
+Time taken: 16.845 seconds
+
+-----------------------------------------------------------
+Query table out2
+-----------------------------------------------------------
+hive (stocks)> select * from out2 limit 10;
+OK
+4000001	Kristina	55	Pilot	92.88	Dice & Dice Sets	old
+4000005	Karen	74	Lawyer	173.38	Bingo Sets	old
+4000001	Kristina	55	Pilot	180.35	Water Tables	old
+4000009	Malcolm	39	Artist	138.26	Pogo Sticks	midium
+4000004	Gretchen	66	Computer hardware engineer	152.25	Snowshoeing	old
+4000007	Elsie	43	Pilot	147.13	Fencing	midium
+4000001	Kristina	55	Pilot	51.18	Racquetball	old
+4000001	Kristina	55	Pilot	161.34	Lacrosse	old
+4000003	Sherri	34	Firefighter	121.04	Fishing	midium
+4000003	Sherri	34	Firefighter	194.94	Foam Rollers	midium
+Time taken: 0.045 seconds, Fetched: 10 row(s)
+hive (stocks)> 
