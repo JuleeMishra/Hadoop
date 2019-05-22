@@ -7,8 +7,19 @@ import org.apache.hadoop.mapreduce.Reducer;
 
 import java.io.IOException;
 import java.util.*;
-
-/* for each user, find the 10 IDs that have most common friends with the user */
+/************************************************************************************
+* Input:                                                                            *
+* <Jacob,	{<Harry,3>,<Joe,1>}>   	                                                *
+* <Harry,	{<Jacob,2>,<Joe,1>}> 	                                                *
+* <Joe, 	{<Jacob,1>,<Harry,1>}>                                                  *
+*                                                                                   *
+* Output:                                                                           *
+* Jacob,	{Harry|Joe}  	--> user and list of recommendations sepearated by '|'  *
+* Harry,	{Jacob|Joe}	                                                            *
+* Joe, 	{Jacob|Harry}                                                               *
+*                                                                                   *
+* for each user, find the 10 IDs that have most common friends with the user        *
+*************************************************************************************/
 public  class ReduceReco2 extends Reducer<Text, TextIntPair, Text, Text> {
 
     public void reduce(Text key, Iterable<TextIntPair> values, Context context) throws IOException, InterruptedException {

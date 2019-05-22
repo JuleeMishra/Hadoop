@@ -1,9 +1,9 @@
 package recom;
 
-/**
- * The Main class for the Recommendations MapReduce program
- * It sets up and runs 2 MR jobs chained together (output of 1 is input to the other)
- */
+/***************************************************************************************
+ * The Main class for the Recommendations MapReduce program                            *
+ * It sets up and runs 2 MR jobs chained together (output of 1 is input to the other)  *
+ ***************************************************************************************/
 
 
 import org.apache.hadoop.fs.FileSystem;
@@ -41,7 +41,7 @@ public class Recommendations extends Configured implements Tool{
 
         FileInputFormat.addInputPath(job1, new Path(arg0[0]));
         FileOutputFormat.setOutputPath(job1, new Path(OUTPUT_PATH));
-        job1.waitForCompletion(true); //Needs to modify return
+        job1.waitForCompletion(true); 
         // -------- Second Map1 Reduce1 Job -------
         // For each user, find top recommendations
         Job job2 = Job.getInstance(getConf());
@@ -58,7 +58,7 @@ public class Recommendations extends Configured implements Tool{
 
         FileInputFormat.addInputPath(job2, new Path(OUTPUT_PATH));
         FileOutputFormat.setOutputPath(job2, new Path(arg0[1]));
-        job2.waitForCompletion(true);
+        return job2.waitForCompletion(true)?0:1;
 		
 	}
 	

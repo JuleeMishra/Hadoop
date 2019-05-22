@@ -10,23 +10,24 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 
-/*Input: 
-Oscar		Jacob, Harry, Joe 
-(It means Oscar is friend with Jacob, Harry, Joe)
-
-Output:     
-(Jacob,Harry)		1
-(Jacob,Joe)			1
-(Harry,Jacob)		1
-(Harry,Joe)			1
-(Joe,Jacob)			1
-(Joe,Harry)			1
-(Oscar,Jacob)		0
-(Oscar,Harry)		0
-(Oscar,Joe)			0
-1--> Means they are not friends with each other
-0--> Means they are friends with each other
-*/
+/*******************************************************************************
+* Input:                                                                       *
+* Oscar		Jacob, Harry, Joe                                                  *
+* (It means Oscar is friend with Jacob, Harry, Joe)                            *
+*                                                                              *
+* Output:                                                                      *
+* (Jacob	Harry)			1                                                  *
+* (Jacob	Joe)			1                                                  *
+* (Harry	Jacob)			1                                                  *
+* (Harry	Joe)			1                                                  *
+* (Joe	Jacob)			1                                                      *
+* (Joe	Harry)			1                                                      *
+* (Oscar	Jacob)			0                                                  *
+* (Oscar	Harry)			0                                                  *
+* (Oscar	Joe)			0                                                  *
+* 1--> Means they are not friends with each other                              *
+* 0--> Means they are friends with each other                                  *
+********************************************************************************/
 public class MapReco1 extends Mapper<LongWritable, Text, TextPair, IntWritable>{
 	
 	public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
