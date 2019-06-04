@@ -1,0 +1,11 @@
+id,donar_city,total,donar_is_teacher
+id1,new york, 12.50,f
+id2,NEW YORK,8.00,f
+id3,New York,50.00,t
+id4,Houston',12.00,f
+id5,new york,12.50,f
+id6,Chicago',8.75, f
+id7,new york,12.50,t
+id8,new york,22.50,f
+id9,new york,2.00,f
+id10,new york,11.50,f

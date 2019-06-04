@@ -1,0 +1,11 @@
+SELECT SUM(total) as sumtotal, UPPER(donor_city) as city
+FROM donations 
+WHERE donor_is_teacher != 't'
+GROUP BY UPPER(donor_city)
+ORDER BY sumtotal DESC;
+
+This task could be broken down into 2 MapReduce jobs :
+	First Job : Filtering and Aggregation
+	Second Job : Sorting
+	
+
