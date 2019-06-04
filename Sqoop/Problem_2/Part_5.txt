@@ -1,0 +1,17 @@
+PART: 5
+>>>>save the data to hdfs without compression as parquet file at /user/cloudera/problem5/parquet-no-compress
+=> read the compressed avro datafile and store it as uncomressed paraquet file. (NOTE: there is no difference between reading a compressed and uncompressed datafile in spark)
+scala> val parquetDataFile = sqlContext.read.parquet("/user/cloudera/problem5/parquet-snappy-compress")
+scala> sqlContext.setConf("spark.sql.parquet.compression.codec","uncompressed");
+>>>read the compressed parquet file
+
+parquetDataFile: org.apache.spark.sql.DataFrame = [order_id: int, order_date: bigint, order_customer_id: int, order_status: string]
+>>>after reading save the read datafile as uncompressed paraquet file.
+scala> parquetDataFile.write.parquet("/user/cloudera/problem5/parquet-no-compress")
+18/04/02 17:44:22 WARN parquet.CorruptStatistics: Ignoring statistics because created_by is null or empty! See PARQUET-251 and PARQUET-297
+
+
+>>>>>save the data to hdfs using snappy compression as avro file at /user/cloudera/problem5/avro-snappy
+scala> sqlContext.setConf("spark.sql.avro.compression.codec","snappy")
+scala> parquetDataFile.write.avro("/user/cloudera/problem5/avro-snappy")
+

@@ -1,0 +1,16 @@
+===================
+6a: /user/cloudera/problem1/result4a-snappy
+===================
+scala> sqlContext.setConf("spark.sql.paraquet.compression.codec", "snappy")
+scala> b_sortedResult.write.parquet("/user/cloudera/problem1/result4a-snappy");
+===================
+6b: /user/cloudera/problem1/result4b-snappy
+===================
+scala> sqlContext.setConf("spark.sql.paraquet.compression.codec", "snappy")
+scala> b_sortedResult.write.parquet("/user/cloudera/problem1/result4b-snappy");
+===================
+6c: /user/cloudera/problem1/result4c-snappy
+===================
+scala> sqlContext.setConf("spark.sql.paraquet.compression.codec", "snappy")
+scala> b_sortedResult.write.parquet("/user/cloudera/problem1/result4c-snappy");
+===================

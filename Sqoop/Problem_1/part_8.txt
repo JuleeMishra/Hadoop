@@ -1,0 +1,21 @@
+****************************************************************************
+part_8: create a mysql table named result and load data from /user/cloudera/problem1/result4a-csv to mysql table named result 
+****************************************************************************
+// login to MYSQL using below : mysql -h localhost -u retail_dba -p
+//    (when prompted password use cloudera or any password that you have currently set)
+
+create table retail_db.result(
+  order_date varchar(255) not null,
+  order_status varchar(255) not null, 
+  total_orders int, 
+  total_amount numeric, 
+  constraint pk_order_result primary key (order_date,order_status)
+  ); 
+  
+sqoop export \
+--table result \
+--connect "jdbc:mysql://quickstart.cloudera:3306/retail_db" \
+--username retail_dba \
+--password cloudera \
+--export-dir "/user/cloudera/problem1/result4a-csv" \
+--columns "order_date,order_status,total_amount,total_orders"

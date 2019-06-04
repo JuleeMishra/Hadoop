@@ -1,0 +1,144 @@
+Problem1:
+Part2:
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+Check order_items table in MySQL and count the records present (count(*)=172198)
+----------------------------------------------------------------------------------------------------------------------------------
+[cloudera@quickstart ~]$ sudo mysql -u root -p 
+Enter password: 
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 49
+Server version: 5.1.73 Source distribution
+
+Copyright (c) 2000, 2013, Oracle and/or its affiliates. All rights reserved.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| cm                 |
+| firehose           |
+| hue                |
+| metastore          |
+| mysql              |
+| nav                |
+| navms              |
+| oozie              |
+| retail_db          |
+| rman               |
+| sentry             |
++--------------------+
+12 rows in set (0.00 sec)
+
+mysql> use retail_db;
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Database changed
+mysql> show tables;
++---------------------+
+| Tables_in_retail_db |
++---------------------+
+| categories          |
+| customers           |
+| departments         |
+| order_items         |
+| orders              |
+| products            |
++---------------------+
+6 rows in set (0.00 sec)
+
+mysql> select count(*) from order_items;
+
++----------+
+| count(*) |
++----------+
+|   172198 |
++----------+
+1 row in set (0.14 sec)
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+Check if same table you can see through Sqoop JDBC connection in MySQL
+----------------------------------------------------------------------------------------------------------------------------------
+[cloudera@quickstart ~]$ sqoop list-databases \
+> --connect jdbc:mysql://localhost \
+> --username root --password cloudera
+Warning: /usr/lib/sqoop/../accumulo does not exist! Accumulo imports will fail.
+Please set $ACCUMULO_HOME to the root of your Accumulo installation.
+18/02/20 12:55:03 INFO sqoop.Sqoop: Running Sqoop version: 1.4.6-cdh5.8.0
+18/02/20 12:55:03 WARN tool.BaseSqoopTool: Setting your password on the command-line is insecure. Consider using -P instead.
+18/02/20 12:55:03 INFO manager.MySQLManager: Preparing to use a MySQL streaming resultset.
+information_schema
+cm
+firehose
+hue
+metastore
+mysql
+nav
+navms
+oozie
+retail_db
+rman
+sentry
+[cloudera@quickstart ~]$ sqoop list-tables --connect jdbc:mysql://localhost/retail_db --username root --password cloudera
+Warning: /usr/lib/sqoop/../accumulo does not exist! Accumulo imports will fail.
+Please set $ACCUMULO_HOME to the root of your Accumulo installation.
+18/02/20 12:55:33 INFO sqoop.Sqoop: Running Sqoop version: 1.4.6-cdh5.8.0
+18/02/20 12:55:33 WARN tool.BaseSqoopTool: Setting your password on the command-line is insecure. Consider using -P instead.
+18/02/20 12:55:33 INFO manager.MySQLManager: Preparing to use a MySQL streaming resultset.
+categories
+customers
+departments
+order_items
+orders
+products
+
+[cloudera@quickstart ~]$ hadoop fs -ls /user/cloudera
+Found 5 items
+drwxr-xr-x   - cloudera cloudera          0 2017-10-16 13:56 /user/cloudera/examples
+drwxr-xr-x   - cloudera cloudera          0 2017-11-08 10:46 /user/cloudera/input
+drwxr-xr-x   - cloudera cloudera          0 2017-10-16 15:06 /user/cloudera/oozie-oozi
+drwxr-xr-x   - cloudera cloudera          0 2017-11-10 21:02 /user/cloudera/output
+drwxr-xr-x   - cloudera cloudera          0 2018-02-20 12:34 /user/cloudera/problem1
+[cloudera@quickstart ~]$ hadoop fs -ls /user/cloudera/problem1
+Found 1 items
+drwxr-xr-x   - cloudera cloudera          0 2018-02-20 12:37 /user/cloudera/problem1/orders
+
+-------------------------------------------------------------------------------------------------------------------------------------------
+Import table(order_items) records as Avro File and use snappy compression
+-------------------------------------------------------------------------------------------------------------------------------------------
+
+[cloudera@quickstart ~]$ sqoop import \
+> --connect jdbc:mysql://localhost/retail_db \
+> --username root --password cloudera \
+> --table order_items \
+> --as-avrodatafile \
+> --target-dir /user/cloudera/problem1/order-items \
+> --compress --compression-codec org.apache.hadoop.io.compress.SnappyCodec \
+> --m 1
+
+	File Input Format Counters 
+		Bytes Read=0
+	File Output Format Counters 
+		Bytes Written=1526314
+18/02/20 13:12:36 INFO mapreduce.ImportJobBase: Transferred 1.4556 MB in 22.2979 seconds (66.8466 KB/sec)
+18/02/20 13:12:36 INFO mapreduce.ImportJobBase: Retrieved 172198 records.
+[cloudera@quickstart ~]$ 
+
+[cloudera@quickstart ~]$ hadoop fs -ls /user/cloudera/problem1
+Found 2 items
+drwxr-xr-x   - cloudera cloudera          0 2018-02-20 13:12 /user/cloudera/problem1/order-items
+drwxr-xr-x   - cloudera cloudera          0 2018-02-20 13:28 /user/cloudera/problem1/orders
+
+[cloudera@quickstart ~]$ hadoop fs -ls /user/cloudera/problem1/order-items
+Found 2 items
+-rw-r--r--   1 cloudera cloudera          0 2018-02-20 13:12 /user/cloudera/problem1/order-items/_SUCCESS
+-rw-r--r--   1 cloudera cloudera    1526314 2018-02-20 13:12 /user/cloudera/problem1/order-items/part-m-00000.avro
+
+

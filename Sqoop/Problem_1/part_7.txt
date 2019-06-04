@@ -1,0 +1,27 @@
+****************************************************************************
+Store the result as parquet file into hdfs using snappy compression under folder 
+**********************************************************************************************************************************************************
+Note: spark 1.6 doesn't have builtin functionality to output csv compressed file. So we need to do some extraction of data and create "," separated line then save as text file
+===================
+7a: /user/cloudera/problem1/result4a-csv
+===================
+dataFrameResult.map(x=> x(0) + "," + x(1) + "," + x(2) + "," + x(3)).saveAsTextFile("/user/cloudera/problem1/result4a-csv")
+sqlResult.map(x=> x(0) + "," + x(1) + "," + x(2) + "," + x(3)).saveAsTextFile("/user/cloudera/problem1/result4b-csv")
+comByKeyResult.map(x=> x(0) + "," + x(1) + "," + x(2) + "," + x(3)).saveAsTextFile("/user/cloudera/problem1/result4c-csv")
+===================
+7b: /user/cloudera/problem1/result4b-csv
+===================
+scala> b_sortedResult.map(x => x(0)+","+ x(1)+","+ x(2)+","+ x(3))
+res19: org.apache.spark.rdd.RDD[String] = MapPartitionsRDD[138] at map at <console>:34
+
+scala> b_sortedResult.map(x => x(0)+","+ x(1)+","+ x(2)+","+ x(3)).take(5).foreach(println)
+2014-07-24,CANCELED,1254.92,2                                                   
+2014-07-24,CLOSED,16333.16,26
+2014-07-24,COMPLETE,34552.03,55
+2014-07-24,ON_HOLD,1709.74,4
+2014-07-24,PAYMENT_REVIEW,499.95,1
+scala> b_sortedResult.map(x => x(0)+","+ x(1)+","+ x(2)+","+ x(3)).saveAsTextFile("/user/cloudera/problem1/result4b-csv")
+
+===================
+7c: /user/cloudera/problem1/result4b-csv
+===================

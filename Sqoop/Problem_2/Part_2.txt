@@ -1,0 +1,16 @@
+PART 2:
+Import orders table from mysql into hdfs to the destination /user/cloudera/problem5/avro. File should be stored as avro file.
+[cloudera@quickstart ~]$ sqoop import \
+> --connect jdbc:mysql://localhost/retail_db \
+> --username root \
+> --password cloudera \
+> --table orders \
+> --as-avrodatafile \
+> --target-dir '/user/cloudera/problem5/avro' \
+> --m 1;
+
+Validation:
+[cloudera@quickstart ~]$ hadoop fs -ls /user/cloudera/problem5/avro
+Found 2 items
+-rw-r--r--   1 cloudera cloudera          0 2018-04-02 13:05 /user/cloudera/problem5/avro/_SUCCESS
+-rw-r--r--   1 cloudera cloudera    1779793 2018-04-02 13:05 /user/cloudera/problem5/avro/part-m-00000.avro

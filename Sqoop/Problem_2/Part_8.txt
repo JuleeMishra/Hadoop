@@ -1,0 +1,13 @@
+PART 8:Using spark access data at /user/cloudera/problem5/sequence and stored it back to hdfs using no compression as ORC file to HDFS to destination /user/cloudera/problem5/orc 
+NOTE: to read sequence file you need to understand class of key and value.
+reading sequence file through sc context takes 3 parameters.
+sc.sequenceFile("path of the sequenceFile", class of Key, Class of Value)
+>>understanding class of key
+[cloudera@quickstart ~]$ hadoop fs -copyToLocal /user/cloudera/problem5/sequence/part-m-00000
+>>get 1st 300 caracter of sequence file using cut command
+[cloudera@quickstart ~]$ cut -c-300 part-m-00000
+here both key and value are of text class
+so,
+scala> val seqDataFile = sc.sequenceFile("/user/cloudera/problem5/sequence", classOf[org.apache.hadoop.io.Text], classOf[org.apache.hadoop.io.Tesxt])
+scala> seqDataFile.map(x=>{var d = x._2.toString.split("\t"); (d(0),d(1),d(2),d(3))}).toDF().write.orc("/user/cloudera/problem5/orc");
+

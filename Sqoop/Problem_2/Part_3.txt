@@ -1,0 +1,16 @@
+PART 3:
+Import orders table from mysql  into hdfs  to folders /user/cloudera/problem5/parquet. File should be stored as parquet file.
+[cloudera@quickstart ~]$ sqoop import \
+ --connect jdbc:mysql://localhost/retail_db \
+ --username root \
+ --password cloudera \
+ --table orders \
+ --as-parquetfile \
+ --target-dir '/user/cloudera/problem5/parquet' \
+ --m 1;
+VALIDATION:
+[cloudera@quickstart ~]$ hadoop fs -ls /user/cloudera/problem5/parquet
+Found 3 items
+drwxr-xr-x   - cloudera cloudera          0 2018-04-02 13:20 /user/cloudera/problem5/parquet/.metadata
+drwxr-xr-x   - cloudera cloudera          0 2018-04-02 13:20 /user/cloudera/problem5/parquet/.signals
+-rw-r--r--   1 cloudera cloudera     488256 2018-04-02 13:20 /user/cloudera/problem5/parquet/ada216d7-e858-4e36-b0c1-0d4822762a1b.parquet

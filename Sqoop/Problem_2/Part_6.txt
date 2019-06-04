@@ -1,0 +1,13 @@
+PART 6:Transform/Convert data-files at /user/cloudera/problem5/avro-snappy and store the converted file at the following locations and file formats
+
+>>>>save the data to hdfs using no compression as json file at /user/cloudera/problem5/json-no-compress
+scala> val dataFile = sqlContext.read.avro("/user/cloudera/problem5/avro-snappy")
+dataFile: org.apache.spark.sql.DataFrame = [order_id: int, order_date: bigint, order_customer_id: int, order_status: string]
+scala> sqlContext.setConf("spark.sql.json.compression.codec", "uncompressed")
+NOTE: you can save the data in json format using any of the two way below:
+scala> dataFile.write.json("/user/cloudera/problem5/json-no-compress")
+scala> dataFile.toJson.saveAsTextFile("/user/cloudera/problem5/json-no-compress")  --> since json is plain text format, this methos is preffered
+
+
+>>>>save the data to hdfs using gzip compression as json file at /user/cloudera/problem5/json-gzip
+scala> dataFile.saveAsTextFile("/user/cloudera/problem5/json-gzip", classOf[org.apache.hadoop.io.compress.GzipCodec])

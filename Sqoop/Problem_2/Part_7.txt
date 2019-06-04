@@ -1,0 +1,7 @@
+PART 7: Transform/Convert data-files at  /user/cloudera/problem5/json-gzip and store the converted file at the following locations and file formats
+>>>>>>>>save the data to as comma separated text using gzip compression at   /user/cloudera/problem5/csv-gzip
+transform the compressed json file to compressed textfile
+a)read the compressed json file
+scala> val jsonDataFile = sqlContext.read.avro("/user/cloudera/problem5/json-gzip")
+b)convert the jsonDataFile into a comma separated to convert it in text format then compress it as gzip
+jsonDataFile.map(x => (x(0)+","+x(1)+","+x(2)+","+x(3)+","+x(4))).saveAsTextFile("/user/cloudera/problem5/csv-gzip", classOf[org.apache.hadoop.io.compress.GzipCodec)

@@ -1,0 +1,22 @@
+****************************
+5: store the results as parquet file into hdfs using gzip compression under folder
+************************************************************************************************************************************************************************************************************************************
+===================
+5a: /user/cloudera/problem1/result4a-gzip
+===================
+scala> sqlContext.setConf("spark.sql.paraquet.compression.codec", "gzip")
+scala> a_sortedResult.write.parquet("/user/cloudera/problem1/result4a-gzip");
+===================
+5b:/user/cloudera/problem1/result4b-gzip
+===================
+scala> sqlContext.setConf("spark.sql.paraquet.compression.codec", "gzip")
+scala> b_sortedResult.write.parquet("/user/cloudera/problem1/result4b-gzip");
+===================
+5b:/user/cloudera/problem1/result4c-gzip
+===================
+scala> sqlContext.setConf("spark.sql.paraquet.compression.codec", "gzip")
+scala> c_sortedResult.write.parquet("/user/cloudera/problem1/result4c-gzip"); 
+
+************************************************************************************************************************************************************************************************************************************
+Store the result as parquet file into hdfs using snappy compression under folder 
+************************************************************************************************************************************************************************************************************************************

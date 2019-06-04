@@ -1,0 +1,28 @@
+Problem 4:
+PART 1:
+Import orders table from mysql as text file to the destination /user/cloudera/problem5/text. Fields should be terminated by a tab character ("\t") character and lines should be terminated by new line character ("\n"). 
+
+cloudera@quickstart ~]$ sqoop import \
+> --connect jdbc:mysql://localhost/retail_db \
+> --username root \
+> --password cloudera \
+> --table orders \
+> --as-textfile \
+> --fields-terminated-by '\t' \
+> --target-dir '/user/cloudera/problem5/text' \
+> --m 1
+
+
+Validation:
+[cloudera@quickstart ~]$ hadoop fs -ls /user/cloudera/problem5/text
+Found 2 items
+-rw-r--r--   1 cloudera cloudera          0 2018-04-02 12:52 /user/cloudera/problem5/text/_SUCCESS
+-rw-r--r--   1 cloudera cloudera    2999944 2018-04-02 12:52 /user/cloudera/problem5/text/part-m-00000
+[cloudera@quickstart ~]$ hadoop fs -tail /user/cloudera/problem5/text/part-m-00000
+68861	2014-06-13 00:00:00.0	3031	PENDING_PAYMENT
+68862	2014-06-15 00:00:00.0	7326	PROCESSING
+68863	2014-06-16 00:00:00.0	3361	CLOSED
+68864	2014-06-18 00:00:00.0	9634	ON_HOLD
+68865	2014-06-19 00:00:00.0	4567	SUSPECTED_FRAUD
+68866	2014-06-20 00:00:00.0	3890	PENDING_PAYMENT
+68867	2014-06-23 00:00:00.0	869	CANCELED
