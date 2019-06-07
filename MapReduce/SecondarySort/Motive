@@ -1,0 +1,4 @@
+SELECT donation_id, donor_state, donor_city, total
+FROM donations
+WHERE donor_state IS NOT NULL AND donor_city IS NOT NULL
+ORDER BY lower(donor_state) ASC, lower(donor_city) ASC, total DESC;

@@ -1,0 +1,11 @@
+id,donor_state,donar_city,total,donar_is_teacher,
+id1,NY,new york, 12.50,f
+id2,NY,NEW YORK,8.00,f
+id3,IL,Chicago,50.00,t
+id4,TX,Houston,12.00,f
+id5,NY,new york,12.50,f
+id6,IL,Chicago,8.75, f
+id7,NY,new york,12.50,t
+id8,TX,Houston,22.50,f
+id9,NY,new york,2.00,f
+id10,NY,new york,11.50,f
