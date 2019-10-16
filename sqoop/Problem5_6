@@ -1,0 +1,68 @@
+*************************************************************************************************************
+Using sqoop do the following. Read the entire steps before you create the sqoop job.
+create a hive table in database named problem5 using below command 
+create table products_hive  (product_id int, product_category_id int, product_name string, product_description string, product_price float, product_imaage string,product_grade int,  product_sentiment string);
+create a sqoop job Import Products_replica table as hive table to database named problem5. name the table as products_hive. 
+insert three more records to Products_replica from mysql
+run the sqoop job again so that only newly added records can be pulled from mysql
+insert 2 more records to Products_replica from mysql
+run the sqoop job again so that only newly added records can be pulled from mysql
+Validate to make sure the records have not been duplicated in Hive table
+*************************************************************************************************************
+*********Import data from mysql to hive:********
+Using sqoop do the following. Read the entire steps before you create the sqoop job.
+
+    create a hive table in database named problem5 using below command 
+    create table products_hive  (product_id int, product_category_id int, product_name string, product_description string, product_price float, product_imaage string,product_grade int,  product_sentiment string);
+    create a sqoop job Import Products_replica table as hive table to database named problem5. name the table as products_hive. 
+    insert three more records to Products_replica from mysql
+    run the sqoop job again so that only newly added records can be pulled from mysql
+    insert 2 more records to Products_replica from mysql
+    run the sqoop job again so that only newly added records can be pulled from mysql
+    Validate to make sure the records have not been duplicated in Hive table
+*****************************************************************************************************************************
+[cloudera@quickstart ~]$ sqoop job \
+> --create hive_sqoop_job \
+> -- import \
+> --connect jdbc:mysql://localhost/retail_db \
+> --username root \
+> --password cloudera \
+> --table products_replica \
+> --check-column product_id \
+> --incremental append \
+> --last-value 0 \
+> --hive-import \
+> --hive-table products_hive \
+> --hive-database problem5;
+
+
+Warning: /usr/lib/sqoop/../accumulo does not exist! Accumulo imports will fail.
+Please set $ACCUMULO_HOME to the root of your Accumulo installation.
+18/04/05 11:48:51 INFO sqoop.Sqoop: Running Sqoop version: 1.4.6-cdh5.8.0
+18/04/05 11:48:51 WARN tool.BaseSqoopTool: Setting your password on the command-line is insecure. Consider using -P instead.
+18/04/05 11:48:51 INFO tool.BaseSqoopTool: Using Hive-specific delimiters for output. You can override
+18/04/05 11:48:51 INFO tool.BaseSqoopTool: delimiters with --fields-terminated-by, etc.
+[cloudera@quickstart ~]$ 
+
+After executing job all the records are pulled into hive table from mysql table
+----------------
+[cloudera@quickstart ~]$ sqoop job --exec hive_sqoop_job
+mysql> select count(*) from products_replica; ------> 1348 records
+hive> select count(*) from products_hive;     ------> 1348 records
+
+
+Insert records into mySql table:
+insert into products_replica values (1378,4,'something 1376','something 2',10.00,'not avaialble',null,'NOT APPLICABLE');
+insert into products_replica values (1379,4,'something 1376','something 2',10.00,'not avaialble',null,'NOT APPLICABLE');
+
+[cloudera@quickstart ~]$ sqoop job --exec hive_sqoop_job
+mysql> select count(*) from products_replica; -------> 1350
+hive> select count(*) from products_hive; -------> 1350
+
+
+
+
+
+
+
+

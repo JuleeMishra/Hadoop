@@ -1,0 +1,188 @@
+Step1:
+[cloudera@quickstart ~]$ sqoop import-all-tables \
+ --connect jdbc:mysql://localhost/retail_db \
+ --username root \
+ --password cloudera \
+ --warehouse-dir /user/hive/warehouse/retail_stage.db \
+ --compress \
+ --compression-codec snappy \
+ --as-avrodatafile
+  --m 1 \
+-----------------------------------
+step:2 
+Q: Create a metastore table and name it order_sqoop
+	Metastore always refers to HIVE database.
+	Sol:
+	***to create a table "orders" into HIVE, first we need to extract schema from "hdfs /part-m-00000.avro" to the file on local
+	[cloudera@quickstart ~]$ hadoop fs -copyToLocal /user/hive/warehouse/retail_stage.db/orders/part-m-00000.avro order_schema
+	[cloudera@quickstart ~]$ avro-tools getschema /home/cloudera/order_schema/part-m-00000.avro > /home/cloudera/order_schema/orders.avsc
+
+	[cloudera@quickstart ~]$ ls order_schema
+	orders.avsc  part-m-00000.avro
+	***copy this schema at hdfs location
+	[cloudera@quickstart ~]$ hadoop fs -copyFromLocal order_schema/orders.avsc /user/hive/schemas/order
+	***In order to create a table in HIVE which points to an external file, we need two pieces of information. specially when it is a avro data file.
+	1) location of avro data file 
+	2) location of schema
+	hive> create external table orders_sqoop
+		> STORED AS AVRO
+		> LOCATION '/user/hive/warehouse/retail_stage.db/orders'      ---> HDFS location
+		> TBLPROPERTIES ('avro.schema.url'='/user/hive/schemas/order/orders.avsc');    ---> HDFS location
+	OK
+	Time taken: 5.818 seconds
+
+	hive> select * from orders_sqoop limit 1;
+	OK
+	1	1374735600000	11599	CLOSED
+
+	hive> describe formatted orders_sqoop;
+	Location:           	hdfs://quickstart.cloudera:8020/user/hive/warehouse/retail_stage.db/orders
+	Avro.schema.url     	/user/hive/schemas/order/orders.avsc
+	order_id            	int                 	                    
+	order_date          	bigint              	                    
+	order_customer_id   	int                 	                    
+	order_status        	string  
+----------------------------------------------------------------------------------
+Step: 3
+Write query in hive that shows all orders belonging to a certain day.
+	hive> select * from orders_sqoop x where x.order_date in (select z.order_date from (select order_date, count(1) total_orders from orders_sqoop group by order_date order by total_orders desc limit 1) as z);
+
+Step: 4
+Write query in Impala that shows all orders belonging to a certain day. 
+[quickstart.cloudera:21000] > invalidate metadata ;
+[quickstart.cloudera:21000] > show tables;
+Query: show tables
++--------------+
+| name         |
++--------------+
+| orders_sqoop |
++--------------+
+****Run the same query as in IMPALA
+[quickstart.cloudera:21000] > select * from orders_sqoop x where x.order_date in (select z.order_date from (select order_date, count(1) total_orders from orders_sqoop group by order_date order by total_orders desc limit 1) as z);
+
+-----------------------------------------------------------
+Step: 5&6
+Now create a table named retail.orders_avro in hive
+
+hive> create database retail; 
+OK
+Time taken: 0.058 seconds
+[cloudera@quickstart ~]$ hadoop fs -ls /user/hive/warehouse/
+Found 2 items
+drwxr-xr-x   - cloudera supergroup          0 2018-04-01 22:28 /user/hive/warehouse/retail.db
+drwxr-xr-x   - cloudera supergroup          0 2018-04-01 18:27 /user/hive/warehouse/retail_stage.db
+
+hive> create table retail.orders_avro (order_id int, order_date date, order_customer_id int, order_status string) 
+    > partitioned by (order_month string)
+    > STORED AS AVRO;
+*********V.V.I to remember while writing partition table*************
+hive> set hive.exec.dynamic.partition = true;
+hive> set hive.exec.dynamic.partition.mode = nonstrict;  --> it means that even you don't make partition, hive will self create a partition for you.
+hive> set hive.exec.max.dynamic.partition.pernode = 300;
+hive> insert overwrite table orders_avro partition (order_month)
+    > select order_id, to_date(from_unixtime(cast(order_date/1000 as int))), order_customer_id, order_status, substr(from_unixtime(cast(order_date/1000 as int)),1,7) as order_month from default.orders_sqoop;
+
+
+VALIDATION OF STEP:5
+When you check the below folder, it has created multiple folder based on the order_month
+[cloudera@quickstart ~]$ hadoop fs -ls /user/hive/warehouse/retail.db/orders_avro
+Found 13 items
+drwxr-xr-x   - cloudera supergroup          0 2018-04-01 23:03 /user/hive/warehouse/retail.db/orders_avro/order_month=2013-07
+drwxr-xr-x   - cloudera supergroup          0 2018-04-01 23:03 /user/hive/warehouse/retail.db/orders_avro/order_month=2013-08
+drwxr-xr-x   - cloudera supergroup          0 2018-04-01 23:03 /user/hive/warehouse/retail.db/orders_avro/order_month=2013-09
+drwxr-xr-x   - cloudera supergroup          0 2018-04-01 23:03 /user/hive/warehouse/retail.db/orders_avro/order_month=2013-10
+drwxr-xr-x   - cloudera supergroup          0 2018-04-01 23:03 /user/hive/warehouse/retail.db/orders_avro/order_month=2013-11
+drwxr-xr-x   - cloudera supergroup          0 2018-04-01 23:03 /user/hive/warehouse/retail.db/orders_avro/order_month=2013-12
+drwxr-xr-x   - cloudera supergroup          0 2018-04-01 23:03 /user/hive/warehouse/retail.db/orders_avro/order_month=2014-01
+drwxr-xr-x   - cloudera supergroup          0 2018-04-01 23:03 /user/hive/warehouse/retail.db/orders_avro/order_month=2014-02
+drwxr-xr-x   - cloudera supergroup          0 2018-04-01 23:03 /user/hive/warehouse/retail.db/orders_avro/order_month=2014-03
+drwxr-xr-x   - cloudera supergroup          0 2018-04-01 23:03 /user/hive/warehouse/retail.db/orders_avro/order_month=2014-04
+drwxr-xr-x   - cloudera supergroup          0 2018-04-01 23:03 /user/hive/warehouse/retail.db/orders_avro/order_month=2014-05
+drwxr-xr-x   - cloudera supergroup          0 2018-04-01 23:03 /user/hive/warehouse/retail.db/orders_avro/order_month=2014-06
+drwxr-xr-x   - cloudera supergroup          0 2018-04-01 23:03 /user/hive/warehouse/retail.db/orders_avro/order_month=2014-07
+[cloudera@quickstart ~]$ 
+Step: 7
+hive> select * from orders_avro x where x.order_date in (select z.order_date from (select count(order_id) as orderCnt, order_date from orders_avro group by order_date order by orderCnt desc limit 1) as z);
+Total MapReduce CPU Time Spent: 13 seconds 660 msec
+OK
+15793	2013-11-03	6471	COMPLETE	2013-11
+15794	2013-11-03	5323	PROCESSING	2013-11
+15795	2013-11-03	10096	CLOSED	2013-11
+15796	2013-11-03	11665	COMPLETE	2013-11
+
+STEP: 8
+When you run the same query in Impala, it gives below error: which means datetime format is not supported in IMPALA, so we need to keep data as string
+CAUSED BY: UnsupportedOperationException: DATE cannot be converted to an Avro type
+
+STEP: 9
+evolution of schema means change of schema over period of time
+[cloudera@quickstart ~]$ hadoop fs -copyToLocal /user/hive/schemas/order/orders.avsc 
+[cloudera@quickstart ~]$ vi orders.avsc
+Add order_style and order_zone then save
+[cloudera@quickstart ~]$ hadoop fs -copyFromLocal -f orders.avsc /user/hive/schemas/order/    ---> -f will replace the existing file and copy the new one.
+
+{
+  "type" : "record",
+  "name" : "orders",
+  "doc" : "Sqoop import of orders",
+  "fields" : [ {
+    "name" : "order_id",
+    "type" : [ "null", "int" ],
+    "default" : null,
+    "columnName" : "order_id",
+    "sqlType" : "4"
+  }, {
+    "name" : "order_date",
+    "type" : [ "null", "long" ],
+    "default" : null,
+    "columnName" : "order_date",
+    "sqlType" : "93"
+  }, {
+    "name" : "order_customer_id",
+    "type" : [ "null", "int" ],
+    "default" : null,
+    "columnName" : "order_customer_id",
+    "sqlType" : "4"
+  }, {
+    "name" : "order_style",
+    "type" : [ "null", "string" ],
+    "default" : null,
+    "columnName" : "order_style",
+    "sqlType" : "93"
+  }, {
+    "name" : "order_zone",
+    "type" : [ "null", "int" ],
+    "default" : null,
+    "columnName" : "order_zone",
+    "sqlType" : "93"
+  }, {
+    "name" : "order_status",
+    "type" : [ "null", "string" ],
+    "default" : null,
+    "columnName" : "order_status",
+    "sqlType" : "12"
+  } ],
+  "tableName" : "orders"
+}
+hive> desc orders_sqoop;
+OK
+order_id            	int                 	                    
+order_date          	bigint              	                    
+order_customer_id   	int                 	                    
+order_style         	string              ---> new column added through avsc file	                    
+order_zone          	int                 ---> new column added through avsc file	     	                    
+order_status        	string              	                    
+Time taken: 0.066 seconds, Fetched: 6 row(s)
+hive> 
+STEP: 9
+hive> select * from orders_sqoop z where z.order_date in (select x.order_date from (select count(order_id) as totalOrder, order_date from orders_sqoop group by order_date order by totalOrder desc limit 1)as x);
+OK
+15793	1383462000000	6471	NULL	NULL	COMPLETE
+15794	1383462000000	5323	NULL	NULL	PROCESSING
+15795	1383462000000	10096	NULL	NULL	CLOSED
+15796	1383462000000	11665	NULL	NULL	COMPLETE
+15797	1383462000000	6249	NULL	NULL	PENDING_PAYMENT
+
+hive> select * from orders_sqoop z where z.order_date in (select x.order_date from (select count(order_id) as totalOrder, order_date from orders_sqoop group by order_date order by totalOrder desc limit 1)as x);select * from orders_sqoop as X where X.order_date in (select q.order_date from (select Y.order_date, count(1) as total_orders from orders_sqoop as Y group by Y.order_date order by total_orders desc, Y.order_date desc limit 1) as q);
+
+

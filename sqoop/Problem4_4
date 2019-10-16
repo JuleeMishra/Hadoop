@@ -1,0 +1,86 @@
+In this problem, we will focus on conversion between different file formats using spark or hive. This is a very import examination topic. I recommend that you master the data file conversion techniques and understand the limitations. You should have an alternate method of accomplishing a solution to the problem in case your primary method fails for any unknown reason. For example, if saving the result as a text file with snappy compression fails while using spark then you should be able to accomplish the same thing using Hive. In this blog\video I am going to walk you through some scenarios that cover alternative ways of dealing with same problem.    
+
+------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------
+PART: 4.4
+Transform/Convert data-files at /user/cloudera/problem5/avro and store the converted file at the following locations and file formats
+	** save the data to hdfs using snappy compression as parquet file at /user/cloudera/problem5/parquet-snappy-compress
+	** save the data to hdfs using gzip compression as text file at /user/cloudera/problem5/text-gzip-compress
+	** save the data to hdfs using no compression as sequence file at /user/cloudera/problem5/sequence
+	** save the data to hdfs using snappy compression as text file at /user/cloudera/problem5/text-snappy-compress
+------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------
+** save the data to hdfs using snappy compression as parquet file at /user/cloudera/problem5/parquet-snappy-compress
+
+	NOTE: databricks allow sqlContext to read avro file. Spark 1.6 doesn't support avro read, so we need to import avro through databricks.
+	scala> import com.databricks.spark.avro._;
+	import com.databricks.spark.avro._
+	scala> val dataFile = sqlContext.read.avro("/user/cloudera/problem5/avro")
+	datafile: org.apache.spark.sql.DataFrame = [order_id: int, order_date: bigint, order_customer_id: int, order_status: string]
+
+	NOTE: convert this datafile into parquet file using snappy compression. In order to perform compression, we need to setup a configuration as below
+	scala> sqlContext.setConf("spark.sql.parquet.compression.codec", "snappy");
+
+	NOTE: to get only one file, repartition this file into a single file.
+	scala> dataFile.repartition(1).write.parquet("/user/cloudera/problem5/parquet-snappy-compress")
+	VALIDATION:
+	[cloudera@quickstart ~]$ hadoop fs -ls /user/cloudera/problem5/
+	Found 4 items
+	drwxr-xr-x   - cloudera cloudera          0 2018-04-02 13:05 /user/cloudera/problem5/avro
+	drwxr-xr-x   - cloudera cloudera          0 2018-04-02 13:20 /user/cloudera/problem5/parquet
+	drwxr-xr-x   - cloudera cloudera          0 2018-04-02 14:38 /user/cloudera/problem5/parquet-snappy-compress
+	drwxr-xr-x   - cloudera cloudera          0 2018-04-02 12:52 /user/cloudera/problem5/text
+
+** save the data to hdfs using gzip compression as text file at /user/cloudera/problem5/text-gzip-compress
+convert avro file to text file format and store it as gzip format
+	scala> val dataFile1 = dataFile.map(x => (x(0)+"\t"+x(1)+"\t"+x(2)+"\t"+x(3)+"\t"))
+	dataFile1: org.apache.spark.rdd.RDD[String] = MapPartitionsRDD[30] at map at <console>:30
+	1	1374735600000	11599	CLOSED	
+	2	1374735600000	256	PENDING_PAYMENT	
+	3	1374735600000	12111	COMPLETE	
+	scala> dataFile1.saveAsTextFile("/user/cloudera/problem5/text-gzip-compress", classOf[org.apache.hadoop.io.compress.GzipCodec])
+	VALIDATIONS:
+	[cloudera@quickstart ~]$ hadoop fs -ls -h /user/cloudera/problem5/text-gzip-compress
+	Found 2 items
+	-rw-r--r--   1 cloudera cloudera          0 2018-04-02 15:13 /user/cloudera/problem5/text-gzip-compress/_SUCCESS
+	-rw-r--r--   1 cloudera cloudera    452.9 K 2018-04-02 15:13 /user/cloudera/problem5/text-gzip-compress/part-00000.gz
+
+
+** save the data to hdfs using no compression as sequence file at /user/cloudera/problem5/sequence
+	save the avro dataFile as sequence file without using compression. Sequence file is key-value file  and both key and value will be serializable in nature..
+	By default text data in spark is serializable in nature.
+	scala> dataFile.map(x => (x(0),x(0)+"\t"+x(1)+"\t"+x(2)+"\t"+x(3)))  ----> key-value pair 
+	res13: org.apache.spark.rdd.RDD[(Any, String)] = MapPartitionsRDD[43] at map at <console>:31
+	scala> dataFile.map(x => (x(0).toString,x(0)+"\t"+x(1)+"\t"+x(2)+"\t"+x(3)))
+	res14: org.apache.spark.rdd.RDD[(String, String)] = MapPartitionsRDD[44] at map at <console>:31
+	scala> dataFile1.saveAsSequenceFile("/user/cloudera/problem5/sequence")
+	VALIDATIONS:
+	[cloudera@quickstart ~]$ hadoop fs -ls -h /user/cloudera/problem5/sequence
+	Found 2 items
+	-rw-r--r--   1 cloudera cloudera          0 2018-04-02 15:32 /user/cloudera/problem5/sequence/_SUCCESS
+	-rw-r--r--   1 cloudera cloudera      3.3 M 2018-04-02 15:32 /user/cloudera/problem5/sequence/part-00000
+	NOTE: size of the sequence file is 3.3 M which is way more than actual AVRO file(1.7 M). This is because sequence files are stored as key,value pair.
+
+
+** save the data to hdfs using snappy compression as text file at /user/cloudera/problem5/text-snappy-compress
+	scala> val dataFile1 = dataFile.map(x => (x(0)+"\t"+x(1)+"\t"+x(2)+"\t"+x(3)))
+	scala> dataFile1.saveAsTextFile("/user/cloudera/problem5/text-snappy-compress", classOf[org.apache.hadoop.io.compress.SnappyCodec])
+	18/04/02 16:05:50 ERROR executor.Executor: Exception in task 0.0 in stage 11.0 (TID 11)
+	java.lang.RuntimeException: native snappy library not available: this version of libhadoop was built without snappy support.
+
+	NOTE: build of cloudera doesn't support snappy compression for textfile, so instead of using spark, we perform snappy compression with HIVE
+	a) since we don't have to perform any transformation, we can use order table data in hive and save as snappy compression using HIVE.
+	[cloudera@quickstart ~]$ sqoop import 
+	--connect jdbc:mysql://localhost/retail_db 
+	--username root 
+	--password cloudera 
+	--table orders 
+	--as-textfile 
+	--compress \
+	--compression-codec 'org.apache.hadoop.io.compress.SnappyCodec' 
+	--target-dir '/user/cloudera/problem5/text-snappy-compress' --m 1;
+	b) In case of snappy compression if we need some transformation over data, in that case, we can create a hive table and point this table to location where your compressed data is stored and do transformation ------> check it
+
+	Transform/Convert data-files at /user/cloudera/problem5/parquet-snappy-compress and store the converted file at the following locations and file formats
+
+

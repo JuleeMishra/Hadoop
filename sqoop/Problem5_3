@@ -1,0 +1,84 @@
+*************************************************************************************************************
+Using sqoop, import products_replica table from MYSQL into hdfs such that fields are separated by a '*' and lines are separated by '\n'. Null values are represented as -1000 for numbers and "NA" for strings. Only records with product id greater than 1111 should be imported and use 5 mappers for importing. The destination file should be stored as a text file to directory  /user/cloudera/problem5/products-text-part2.
+*************************************************************************************************************
+[cloudera@quickstart ~]$ sqoop import \
+--connect jdbc:mysql://localhost/retail_db \ 
+--username root \
+--password cloudera \ 
+--table products_replica \ 
+--target-dir '/user/cloudera/problem5/products-text-part2' \ 
+--fields-terminated-by '*' \
+--lines-terminated-by '\n' \ 
+--m 5 \
+--null-non-string -1000 \ 
+--null-string "NA" \ 
+--where 'product_id > 1111' \ 
+--boundary-query 'select min(product_id), max(product_id) from products_replica where product_id > 1111'
+--as-textfile \
+--outdir /home/cloudera/sqoop3
+
+** boundary-query needed to make sqoop understand min and max value needed to fetch product_id(primary_key)
+
+VALIDATIONS:
+[cloudera@quickstart ~]$ hadoop fs -ls /user/cloudera/problem5/products-text-part2
+Found 6 items
+-rw-r--r--   1 cloudera cloudera          0 2018-04-04 18:28 /user/cloudera/problem5/products-text-part2/_SUCCESS
+-rw-r--r--   1 cloudera cloudera       7530 2018-04-04 18:27 /user/cloudera/problem5/products-text-part2/part-m-00000
+-rw-r--r--   1 cloudera cloudera       7105 2018-04-04 18:27 /user/cloudera/problem5/products-text-part2/part-m-00001
+-rw-r--r--   1 cloudera cloudera       7104 2018-04-04 18:28 /user/cloudera/problem5/products-text-part2/part-m-00002
+-rw-r--r--   1 cloudera cloudera       6669 2018-04-04 18:28 /user/cloudera/problem5/products-text-part2/part-m-00003
+-rw-r--r--   1 cloudera cloudera       7696 2018-04-04 18:28 /user/cloudera/problem5/products-text-part2/part-m-00004
+
+
+
+[cloudera@quickstart ~]$ hadoop fs -cat /user/cloudera/problem5/products-text-part2/part-m-00000 | head
+1112*50*Majestic Youth 2014 All-Star Game Miguel Cabr**60.0*http://images.acmesports.sports/Majestic+Youth+2014+All-Star+Game+Miguel+Cabrera+%2324...*-1000*NA
+1113*50*Majestic Youth 2014 All-Star Game Masahiro Ta**60.0*http://images.acmesports.sports/Majestic+Youth+2014+All-Star+Game+Masahiro+Tanaka+%2319...*-1000*NA
+1114*50*Majestic Youth 2014 All-Star Game Derek Jeter**60.0*http://images.acmesports.sports/Majestic+Youth+2014+All-Star+Game+Derek+Jeter+%232+American...*-1000*NA
+1115*50*Majestic Youth 2014 All-Star Game Jose Abreu **60.0*http://images.acmesports.sports/Majestic+Youth+2014+All-Star+Game+Jose+Abreu+%2379+American...*-1000*NA
+1116*50*Majestic Men's 2014 All-Star Game Troy Tulowi**130.0*http://images.acmesports.sports/Majestic+Men%27s+2014+All-Star+Game+Troy+Tulowitzki+%232...*-1000*NA
+1117*50*Majestic Men's 2014 All-Star Game Yasiel Puig**130.0*http://images.acmesports.sports/Majestic+Men%27s+2014+All-Star+Game+Yasiel+Puig+%2366+National...*-1000*NA
+1118*50*Majestic Men's 2014 All-Star Game Andrew McCu**130.0*http://images.acmesports.sports/Majestic+Men%27s+2014+All-Star+Game+Andrew+McCutchen+%2322...*-1000*NA
+1119*50*Majestic Men's 2014 All-Star Game Yadier Moli**130.0*http://images.acmesports.sports/Majestic+Men%27s+2014+All-Star+Game+Yadier+Molina+%234+National...*-1000*NA
+1120*50*Majestic Men's 2014 All-Star Game Freddie Fre**130.0*http://images.acmesports.sports/Majestic+Men%27s+2014+All-Star+Game+Freddie+Freeman+%235...*-1000*NA
+1121*50*Majestic Men's 2014 All-Star Game Mike Trout **130.0*http://images.acmesports.sports/Majestic+Men%27s+2014+All-Star+Game+Mike+Trout+%2327+American...*-1000*NA
+cat: Unable to write to output stream.
+[cloudera@quickstart ~]$ 
+
+[cloudera@quickstart ~]$ hadoop fs -cat /user/cloudera/problem5/products-text-part2/part-m-00000 | tail
+1149*51*Wild Sports Washington Redskins XL Tailgate B**219.99*http://images.acmesports.sports/Wild+Sports+Washington+Redskins+XL+Tailgate+Bean+Bag+Toss...*-1000*NA
+1150*51*Wild Sports Dallas Cowboys XL Tailgate Bean B**219.99*http://images.acmesports.sports/Wild+Sports+Dallas+Cowboys+XL+Tailgate+Bean+Bag+Toss+Shields*-1000*NA
+1151*51*Nike Men's Chicago Bears Coaches Sideline 201**34.97*http://images.acmesports.sports/Nike+Men%27s+Chicago+Bears+Coaches+Sideline+2013+White...*-1000*NA
+1152*51*Nike Men's Home Game Jersey Pittsburgh Steele**100.0*http://images.acmesports.sports/Nike+Men%27s+Home+Game+Jersey+Pittsburgh+Steelers+Ryan+Shazier...*-1000*NA
+1153*51*Nike Men's Home Game Jersey New Orleans Saint**100.0*http://images.acmesports.sports/Nike+Men%27s+Home+Game+Jersey+New+Orleans+Saints+Brandin+Cooks...*-1000*NA
+1154*52*Reebok Men's Chicago Blackhawks Patrick Kane **170.0*http://images.acmesports.sports/Reebok+Men%27s+Chicago+Blackhawks+Patrick+Kane+%2388+Home+Red...*-1000*NA
+1155*52*$10 Gift Card**10.0*http://images.acmesports.sports/%2410+Gift+Card*-1000*NA
+1156*52*Reebok Men's Boston Bruins Patrice Bergeron #**170.0*http://images.acmesports.sports/Reebok+Men%27s+Boston+Bruins+Patrice+Bergeron+%2337+Home+Black...*-1000*NA
+1157*52*Reebok Men's Chicago Blackhawks Jonathan Toew**170.0*http://images.acmesports.sports/Reebok+Men%27s+Chicago+Blackhawks+Jonathan+Toews+%2319+Home...*-1000*NA
+1158*52*Reebok Men's Chicago Blackhawks Jonathan Toew**170.0*http://images.acmesports.sports/Reebok+Men%27s+Chicago+Blackhawks+Jonathan+Toews+%2319+Home...*-1000*NA
+[cloudera@quickstart ~]$ 
+
+[cloudera@quickstart ~]$ hadoop fs -cat /user/cloudera/problem5/products-text-part2/part-m-00004 | head
+1299*58*Majestic Men's Authentic New York Yankees Der**194.0*http://images.acmesports.sports/Majestic+Men%27s+Authentic+New+York+Yankees+Derek+Jeter+%232...*-1000*NA
+1300*58*Majestic Men's Replica New York Yankees Derek**100.0*http://images.acmesports.sports/Majestic+Men%27s+Replica+New+York+Yankees+Derek+Jeter+%232+Home...*-1000*NA
+1301*58*Majestic Youth Replica New York Yankees Derek**50.0*http://images.acmesports.sports/Majestic+Youth+Replica+New+York+Yankees+Derek+Jeter+%232+Home...*-1000*NA
+1302*58*Majestic Men's 2014 All-Star Game Derek Jeter**130.0*http://images.acmesports.sports/Majestic+Men%27s+2014+All-Star+Game+Derek+Jeter+%232+American...*-1000*NA
+1303*58*Majestic Women's New York Yankees Derek Jeter**28.0*http://images.acmesports.sports/Majestic+Women%27s+New+York+Yankees+Derek+Jeter+%232+Navy...*-1000*NA
+1304*58*Majestic Men's Replica Pittsburgh Pirates And**100.0*http://images.acmesports.sports/Majestic+Men%27s+Replica+Pittsburgh+Pirates+Andrew+McCutchen...*-1000*NA
+1305*58*Nike Men's New York Yankees Derek Jeter Pinst**30.0*http://images.acmesports.sports/Nike+Men%27s+New+York+Yankees+Derek+Jeter+Pinstripe+%232+Navy...*-1000*NA
+1306*58*Majestic Youth Replica Pittsburgh Pirates And**50.0*http://images.acmesports.sports/Majestic+Youth+Replica+Pittsburgh+Pirates+Andrew+McCutchen...*-1000*NA
+1307*58*Majestic Youth Replica Boston Red Sox David O**50.0*http://images.acmesports.sports/Majestic+Youth+Replica+Boston+Red+Sox+David+Ortiz+%2334+Home...*-1000*NA
+1308*58*Majestic Youth 2014 All-Star Game Derek Jeter**60.0*http://images.acmesports.sports/Majestic+Youth+2014+All-Star+Game+Derek+Jeter+%232+American...*-1000*NA
+cat: Unable to write to output stream.
+[cloudera@quickstart ~]$ hadoop fs -cat /user/cloudera/problem5/products-text-part2/part-m-00004 | tail
+1336*59*Nike Men's Home Game Jersey New York Giants O**100.0*http://images.acmesports.sports/Nike+Men%27s+Home+Game+Jersey+New+York+Giants+Odell+Beckham...*-1000*NA
+1337*59*Nike Men's Home Game Jersey Carolina Panthers**100.0*http://images.acmesports.sports/Nike+Men%27s+Home+Game+Jersey+Carolina+Panthers+Kelvin...*-1000*NA
+1338*59*Nike Men's Home Game Jersey Chicago Bears Jar**100.0*http://images.acmesports.sports/Nike+Men%27s+Home+Game+Jersey+Chicago+Bears+Jared+Allen+%2369*-1000*NA
+1339*59*Nike Men's Home Game Jersey New York Giants E**100.0*http://images.acmesports.sports/Nike+Men%27s+Home+Game+Jersey+New+York+Giants+Eli+Manning+%2310*-1000*NA
+1340*59*Majestic Men's Replica Texas Rangers Russell **69.97*http://images.acmesports.sports/Majestic+Men%27s+Replica+Texas+Rangers+Russell+Wilson+%233+Home...*-1000*NA
+1341*59*Nike Women's Cleveland Browns Johnny Football**34.0*http://images.acmesports.sports/Nike+Women%27s+Cleveland+Browns+Johnny+Football+Orange+T-Shirt*-1000*NA
+1342*59*Nike Men's St. Louis Rams Michael Sam #96 Nam**32.0*http://images.acmesports.sports/Nike+Men%27s+St.+Louis+Rams+Michael+Sam+%2396+Name+and+Number...*-1000*NA
+1343*59*Nike Men's Home Game Jersey St. Louis Rams Mi**100.0*http://images.acmesports.sports/Nike+Men%27s+Home+Game+Jersey+St.+Louis+Rams+Michael+Sam+%2396*-1000*NA
+1344*59*Nike Men's Home Game Jersey St. Louis Rams Aa**100.0*http://images.acmesports.sports/Nike+Men%27s+Home+Game+Jersey+St.+Louis+Rams+Aaron+Donald+%2399*-1000*NA
+1345*59*Nike Men's Home Game Jersey St. Louis Rams Gr**100.0*http://images.acmesports.sports/Nike+Men%27s+Home+Game+Jersey+St.+Louis+Rams+Greg+Robinson...*-1000*NA
+

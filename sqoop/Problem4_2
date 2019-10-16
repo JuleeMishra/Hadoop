@@ -1,0 +1,23 @@
+In this problem, we will focus on conversion between different file formats using spark or hive. This is a very import examination topic. I recommend that you master the data file conversion techniques and understand the limitations. You should have an alternate method of accomplishing a solution to the problem in case your primary method fails for any unknown reason. For example, if saving the result as a text file with snappy compression fails while using spark then you should be able to accomplish the same thing using Hive. In this blog\video I am going to walk you through some scenarios that cover alternative ways of dealing with same problem.    
+
+------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------
+PART: 4.2
+Import orders table from mysql into hdfs to the destination /user/cloudera/problem5/avro. File should be stored as avro file. 
+------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------
+[cloudera@quickstart ~]$ sqoop import \
+> --connect jdbc:mysql://localhost/retail_db \
+> --username root \
+> --password cloudera \
+> --table orders \
+> --as-avrodatafile \
+> --target-dir '/user/cloudera/problem5/avro' \
+> --m 1;
+
+Validation:
+[cloudera@quickstart ~]$ hadoop fs -ls /user/cloudera/problem5/avro
+Found 2 items
+-rw-r--r--   1 cloudera cloudera          0 2018-04-02 13:05 /user/cloudera/problem5/avro/_SUCCESS
+-rw-r--r--   1 cloudera cloudera    1779793 2018-04-02 13:05 /user/cloudera/problem5/avro/part-m-00000.avro
+

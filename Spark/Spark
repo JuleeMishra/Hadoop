@@ -1,0 +1,31 @@
+scala> val data = Array(1,2,3,4,5,6)
+data: Array[Int] = Array(1, 2, 3, 4, 5, 6)
+
+scala> val rddData = sc.parallelize(data)
+rddData: org.apache.spark.rdd.RDD[Int] = ParallelCollectionRDD[17] at parallelize at <console>:29
+
+scala> rddData.foreach(println)
+1
+2
+3
+4
+5
+6
+
+scala> val AddData = rddData.map(s=>s+1)
+AddData: org.apache.spark.rdd.RDD[Int] = MapPartitionsRDD[18] at map at <console>:31
+
+scala> AddData.foreach(println)
+2
+3
+4
+5
+6
+7
+
+scala> val AccAdd = AddData.reduce((a,b)=>(a+b))
+AccAdd: Int = 27
+
+scala> val AccAdd = AddData.reduce((a,b)=>(a+b))
+
+

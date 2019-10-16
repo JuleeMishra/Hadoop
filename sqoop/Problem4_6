@@ -1,0 +1,23 @@
+In this problem, we will focus on conversion between different file formats using spark or hive. This is a very import examination topic. I recommend that you master the data file conversion techniques and understand the limitations. You should have an alternate method of accomplishing a solution to the problem in case your primary method fails for any unknown reason. For example, if saving the result as a text file with snappy compression fails while using spark then you should be able to accomplish the same thing using Hive. In this blog\video I am going to walk you through some scenarios that cover alternative ways of dealing with same problem.    
+
+------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------
+PART: 4.6
+** Transform/Convert data-files at /user/cloudera/problem5/avro-snappy and store the converted file at the following locations and file formats
+** save the data to hdfs using no compression as json file at /user/cloudera/problem5/json-no-compress
+save the data to hdfs using gzip compression as json file at /user/cloudera/problem5/json-gzip
+------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------
+
+
+** save the data to hdfs using no compression as json file at /user/cloudera/problem5/json-no-compress
+	scala> import com.databricks.spark.avro._;
+	scala> val dataFile = sqlContext.read.avro("/user/cloudera/problem5/avro-snappy")
+	dataFile: org.apache.spark.sql.DataFrame = [order_id: int, order_date: bigint, order_customer_id: int, order_status: string]
+	scala> sqlContext.setConf("spark.sql.json.compression.codec", "uncompressed")
+	NOTE: you can save the data in json format using any of the two way below:
+	scala> dataFile.toJson.saveAsTextFile("/user/cloudera/problem5/json-no-compress")  --> since json is plain text format, this methos is preffered
+
+** save the data to hdfs using gzip compression as json file at /user/cloudera/problem5/json-gzip
+	scala> dataFile.toJson.saveAsTextFile("/user/cloudera/problem5/json-gzip", classOf[org.apache.hadoop.io.compress.GzipCodec])
+

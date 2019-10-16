@@ -1,0 +1,29 @@
+[cloudera@quickstart ~]$ mysql -u root -p
+mysql> use retail_db;
+mysql> create table products_replica as select * from products;
+mysql> alter table products_replica add primary key(product_id);
+
+mysql> alter table products_replica add column(product_grade int, product_sentiment varchar(100));
+Query OK, 1345 rows affected (0.03 sec)
+Records: 1345  Duplicates: 0  Warnings: 0
+
+mysql> alter table products_replica add column(product_grade int, product_sentiment varchar(100));
+Query OK, 1345 rows affected (0.03 sec)
+Records: 1345  Duplicates: 0  Warnings: 0
+
+mysql> desc products_replica;
++---------------------+--------------+------+-----+---------+-------+
+| Field               | Type         | Null | Key | Default | Extra |
++---------------------+--------------+------+-----+---------+-------+
+| product_id          | int(11)      | NO   | PRI | 0       |       |
+| product_category_id | int(11)      | NO   |     | NULL    |       |
+| product_name        | varchar(45)  | NO   |     | NULL    |       |
+| product_description | varchar(255) | NO   |     | NULL    |       |
+| product_price       | float        | NO   |     | NULL    |       |
+| product_image       | varchar(255) | NO   |     | NULL    |       |
+| product_grade       | int(11)      | YES  |     | NULL    |       |
+| product_sentiment   | varchar(100) | YES  |     | NULL    |       |
++---------------------+--------------+------+-----+---------+-------+
+8 rows in set (0.00 sec)
+
+

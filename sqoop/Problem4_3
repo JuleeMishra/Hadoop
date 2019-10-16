@@ -1,0 +1,23 @@
+In this problem, we will focus on conversion between different file formats using spark or hive. This is a very import examination topic. I recommend that you master the data file conversion techniques and understand the limitations. You should have an alternate method of accomplishing a solution to the problem in case your primary method fails for any unknown reason. For example, if saving the result as a text file with snappy compression fails while using spark then you should be able to accomplish the same thing using Hive. In this blog\video I am going to walk you through some scenarios that cover alternative ways of dealing with same problem.    
+
+-----------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------
+PART: 4.1
+Import orders table from mysql  into hdfs  to folders /user/cloudera/problem5/parquet. File should be stored as parquet file.
+------------------------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------
+[cloudera@quickstart ~]$ sqoop import \
+ --connect jdbc:mysql://localhost/retail_db \
+ --username root \
+ --password cloudera \
+ --table orders \
+ --as-parquetfile \
+ --target-dir '/user/cloudera/problem5/parquet' \
+ --m 1;
+VALIDATION:
+[cloudera@quickstart ~]$ hadoop fs -ls /user/cloudera/problem5/parquet
+Found 3 items
+drwxr-xr-x   - cloudera cloudera          0 2018-04-02 13:20 /user/cloudera/problem5/parquet/.metadata
+drwxr-xr-x   - cloudera cloudera          0 2018-04-02 13:20 /user/cloudera/problem5/parquet/.signals
+-rw-r--r--   1 cloudera cloudera     488256 2018-04-02 13:20 /user/cloudera/problem5/parquet/ada216d7-e858-4e36-b0c1-0d4822762a1b.parquet
+

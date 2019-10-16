@@ -1,0 +1,109 @@
+******************************************************************************************
+Using sqoop, import products_replica table from MYSQL into hdfs such that fields are separated by a '|' and lines are separated by '\n'. Null values are represented as -1 for numbers and "NOT-AVAILABLE" for strings. Only records with product id greater than or equal to 1 and less than or equal to 1000 should be imported and use 3 mappers for importing. The destination file should be stored as a text file to directory  /user/cloudera/problem5/products-text. 
+*****************************************************************************************
+[cloudera@quickstart ~]$ sqoop import 
+--connect jdbc:mysql://localhost/retail_db 
+--username root 
+--password cloudera 
+--table products_replica 
+--target-dir '/user/cloudera/problem5/products-text' 
+--fields-terminated-by '|' 
+--m 3 
+--lines-terminated-by '\n' 
+--null-non-string -1 
+--null-string "NOT-AVAILABLE" 
+--where 'product_id between 1 and 1000' 
+--boundary-query 'select min(product_id), max(product_id) from products_replica where product_id between 1 and 1000' 
+--outdir /home/cloudera/sqoop1   -------->this produces a .java file on local directory (/home/cloudera/sqoop1/products_replica.java)
+
+NOTE: Boundary-query divides the mapper in equal parts. Here it's based on the product_id. All the 1000 records devided into three parts.
+out-dir: is used to store some sqoop internal java files
+1st mapper: 1-333
+2nd mapper: 334-666
+3rd mapper: 661-999
+
+
+VALIDATION:
+[cloudera@quickstart ~]$ hadoop fs -ls /user/cloudera/problem5/products-text
+Found 4 items
+-rw-r--r--   1 cloudera cloudera          0 2018-04-04 14:10 /user/cloudera/problem5/products-text/_SUCCESS
+-rw-r--r--   1 cloudera cloudera      46511 2018-04-04 14:10 /user/cloudera/problem5/products-text/part-m-00000
+-rw-r--r--   1 cloudera cloudera      48847 2018-04-04 14:10 /user/cloudera/problem5/products-text/part-m-00001
+-rw-r--r--   1 cloudera cloudera      47434 2018-04-04 14:10 /user/cloudera/problem5/products-text/part-m-00002
+Mapper: 1
+[cloudera@quickstart ~]$ hadoop fs -cat /user/cloudera/problem5/products-text/part-m-00000 | head
+1|2|Quest Q64 10 FT. x 10 FT. Slant Leg Instant U||59.98|http://images.acmesports.sports/Quest+Q64+10+FT.+x+10+FT.+Slant+Leg+Instant+Up+Canopy|-1|NOT-AVAILABLE
+2|2|Under Armour Men's Highlight MC Football Clea||129.99|http://images.acmesports.sports/Under+Armour+Men%27s+Highlight+MC+Football+Cleat|-1|NOT-AVAILABLE
+3|2|Under Armour Men's Renegade D Mid Football Cl||89.99|http://images.acmesports.sports/Under+Armour+Men%27s+Renegade+D+Mid+Football+Cleat|-1|NOT-AVAILABLE
+4|2|Under Armour Men's Renegade D Mid Football Cl||89.99|http://images.acmesports.sports/Under+Armour+Men%27s+Renegade+D+Mid+Football+Cleat|-1|NOT-AVAILABLE
+5|2|Riddell Youth Revolution Speed Custom Footbal||199.99|http://images.acmesports.sports/Riddell+Youth+Revolution+Speed+Custom+Football+Helmet|-1|NOT-AVAILABLE
+6|2|Jordan Men's VI Retro TD Football Cleat||134.99|http://images.acmesports.sports/Jordan+Men%27s+VI+Retro+TD+Football+Cleat|-1|NOT-AVAILABLE
+7|2|Schutt Youth Recruit Hybrid Custom Football H||99.99|http://images.acmesports.sports/Schutt+Youth+Recruit+Hybrid+Custom+Football+Helmet+2014|-1|NOT-AVAILABLE
+8|2|Nike Men's Vapor Carbon Elite TD Football Cle||129.99|http://images.acmesports.sports/Nike+Men%27s+Vapor+Carbon+Elite+TD+Football+Cleat|-1|NOT-AVAILABLE
+9|2|Nike Adult Vapor Jet 3.0 Receiver Gloves||50.0|http://images.acmesports.sports/Nike+Adult+Vapor+Jet+3.0+Receiver+Gloves|-1|NOT-AVAILABLE
+10|2|Under Armour Men's Highlight MC Football Clea||129.99|http://images.acmesports.sports/Under+Armour+Men%27s+Highlight+MC+Football+Cleat|-1|NOT-AVAILABLE
+cat: Unable to write to output stream.
+
+[cloudera@quickstart ~]$ hadoop fs -cat /user/cloudera/problem5/products-text/part-m-00000 | tail
+324|15|Reebok Women's Fitness Essential Slim Fit Cap||34.0|http://images.acmesports.sports/Reebok+Women%27s+Fitness+Essential+Slim+Fit+Capri|-1|NOT-AVAILABLE
+325|15|lucy Women's Hatha Capri Leggings||79.0|http://images.acmesports.sports/lucy+Women%27s+Hatha+Capri+Leggings|-1|NOT-AVAILABLE
+326|15|Mission Enduracool Instant Cooling Towel||14.99|http://images.acmesports.sports/Mission+Enduracool+Instant+Cooling+Towel|-1|NOT-AVAILABLE
+327|15|Reebok Women's Performance Regular Motion Fit||50.0|http://images.acmesports.sports/Reebok+Women%27s+Performance+Regular+Motion+Fit+Capri|-1|NOT-AVAILABLE
+328|15|Under Armour Women's Perfect Flowy Tank Top||32.99|http://images.acmesports.sports/Under+Armour+Women%27s+Perfect+Flowy+Tank+Top|-1|NOT-AVAILABLE
+329|15|Under Armour Women's Essential Banded Tank To||49.99|http://images.acmesports.sports/Under+Armour+Women%27s+Essential+Banded+Tank+Top|-1|NOT-AVAILABLE
+330|15|Nike Women's Dri-FIT Cotton Tight Capris||40.0|http://images.acmesports.sports/Nike+Women%27s+Dri-FIT+Cotton+Tight+Capris|-1|NOT-AVAILABLE
+331|15|The North Face Women's Be Calm Tank Top||38.0|http://images.acmesports.sports/The+North+Face+Women%27s+Be+Calm+Tank+Top|-1|NOT-AVAILABLE
+332|15|Under Armour Women's Pure Stretch Sheer Cheek||12.0|http://images.acmesports.sports/Under+Armour+Women%27s+Pure+Stretch+Sheer+Cheeky+Underwear|-1|NOT-AVAILABLE
+333|15|lucy Women's Heart Center Tank Top||55.0|http://images.acmesports.sports/lucy+Women%27s+Heart+Center+Tank+Top|-1|NOT-AVAILABLE
+
+Mapper: 2
+[cloudera@quickstart ~]$ hadoop fs -cat /user/cloudera/problem5/products-text/part-m-00001 | head
+334|15|Reebok Women's Fitness Essentials Regular Fit||38.0|http://images.acmesports.sports/Reebok+Women%27s+Fitness+Essentials+Regular+Fit+Pant|-1|NOT-AVAILABLE
+335|15|Nike Women's Dri-FIT Cotton Regular-Fit Capri||45.0|http://images.acmesports.sports/Nike+Women%27s+Dri-FIT+Cotton+Regular-Fit+Capris|-1|NOT-AVAILABLE
+336|15|Nike Swoosh Headband - 2"||5.0|http://images.acmesports.sports/Nike+Swoosh+Headband+-+2%22|-1|NOT-AVAILABLE
+337|16|Fitness Gear 300 lb Olympic Weight Set||209.99|http://images.acmesports.sports/Fitness+Gear+300+lb+Olympic+Weight+Set|-1|NOT-AVAILABLE
+338|16|Nike Men's Fingertrap Max Training Shoe||124.99|http://images.acmesports.sports/Nike+Men%27s+Fingertrap+Max+Training+Shoe|-1|NOT-AVAILABLE
+339|16|Elevation Training Mask 2.0||79.99|http://images.acmesports.sports/Elevation+Training+Mask+2.0|-1|NOT-AVAILABLE
+340|16|PRIMED 12' x 6' Instant Soccer Goal||149.99|http://images.acmesports.sports/PRIMED+12%27+x+6%27+Instant+Soccer+Goal|-1|NOT-AVAILABLE
+341|16|Fitness Gear Pro Utility Bench||179.99|http://images.acmesports.sports/Fitness+Gear+Pro+Utility+Bench|-1|NOT-AVAILABLE
+342|16|SKLZ Quickster 12' x 6' Portable Soccer Goal||149.99|http://images.acmesports.sports/SKLZ+Quickster+12%27+x+6%27+Portable+Soccer+Goal|-1|NOT-AVAILABLE
+343|16|Teeter Hang Ups NXT-S Inversion Table||299.99|http://images.acmesports.sports/Teeter+Hang+Ups+NXT-S+Inversion+Table|-1|NOT-AVAILABLE
+cat: Unable to write to output stream.
+
+[cloudera@quickstart ~]$ hadoop fs -cat /user/cloudera/problem5/products-text/part-m-00001 | tail
+657|30|Merrell Women's Azura Wide Hiking Shoe||99.99|http://images.acmesports.sports/Merrell+Women%27s+Azura+Wide+Hiking+Shoe|-1|NOT-AVAILABLE
+658|30|Merrell Women's Azura Hiking Shoe||99.99|http://images.acmesports.sports/Merrell+Women%27s+Azura+Hiking+Shoe|-1|NOT-AVAILABLE
+659|30|Merrell Men's Moab Rover Waterproof Wide Hiki||119.99|http://images.acmesports.sports/Merrell+Men%27s+Moab+Rover+Waterproof+Wide+Hiking+Shoe|-1|NOT-AVAILABLE
+660|30|Merrell Men's Moab Rover Waterproof Hiking Sh||119.99|http://images.acmesports.sports/Merrell+Men%27s+Moab+Rover+Waterproof+Hiking+Shoe|-1|NOT-AVAILABLE
+661|30|Merrell Women's Azura Wide Hiking Shoe||99.99|http://images.acmesports.sports/Merrell+Women%27s+Azura+Wide+Hiking+Shoe|-1|NOT-AVAILABLE
+662|30|Merrell Women's Azura Hiking Shoe||99.99|http://images.acmesports.sports/Merrell+Women%27s+Azura+Hiking+Shoe|-1|NOT-AVAILABLE
+663|30|Merrell Men's Moab Rover Mid Waterproof Wide ||139.99|http://images.acmesports.sports/Merrell+Men%27s+Moab+Rover+Mid+Waterproof+Wide+Hiking+Boot|-1|NOT-AVAILABLE
+664|30|Merrell Men's Moab Rover Mid Waterproof Wide ||139.99|http://images.acmesports.sports/Merrell+Men%27s+Moab+Rover+Mid+Waterproof+Wide+Hiking+Boot|-1|NOT-AVAILABLE
+665|30|Merrell Men's Moab Rover Mid Waterproof Hikin||139.99|http://images.acmesports.sports/Merrell+Men%27s+Moab+Rover+Mid+Waterproof+Hiking+Boot|-1|NOT-AVAILABLE
+666|30|Merrell Men's All Out Flash Trail Running Sho||109.99|http://images.acmesports.sports/Merrell+Men%27s+All+Out+Flash+Trail+Running+Shoe|-1|NOT-AVAILABLE
+
+Mapper: 3
+[cloudera@quickstart ~]$ hadoop fs -cat /user/cloudera/problem5/products-text/part-m-00002 | head
+667|30|Merrell Women's All Out Flash Trail Running S||109.99|http://images.acmesports.sports/Merrell+Women%27s+All+Out+Flash+Trail+Running+Shoe|-1|NOT-AVAILABLE
+668|30|Merrell Women's All Out Flash Trail Running S||109.99|http://images.acmesports.sports/Merrell+Women%27s+All+Out+Flash+Trail+Running+Shoe|-1|NOT-AVAILABLE
+669|31|Cleveland Golf My Custom Wedge 588 Forged RTX||179.99|http://images.acmesports.sports/Cleveland+Golf+My+Custom+Wedge+588+Forged+RTX+Black+Pearl...|-1|NOT-AVAILABLE
+670|31|Cleveland Golf Elite My Custom Wedge 588 Forg||209.99|http://images.acmesports.sports/Cleveland+Golf+Elite+My+Custom+Wedge+588+Forged+RTX+Black...|-1|NOT-AVAILABLE
+671|31|Cleveland Golf Collegiate My Custom Wedge 588||209.99|http://images.acmesports.sports/Cleveland+Golf+Collegiate+My+Custom+Wedge+588+RTX+Forged...|-1|NOT-AVAILABLE
+672|31|PING G30 Driver||349.0|http://images.acmesports.sports/PING+G30+Driver|-1|WEAK
+673|31|PING G30 Fairway Wood||249.0|http://images.acmesports.sports/PING+G30+Fairway+Wood|-1|NOT-AVAILABLE
+674|31|PING G30 Hybrid||219.0|http://images.acmesports.sports/PING+G30+Hybrid|-1|NOT-AVAILABLE
+675|31|PING G30 Irons - (Steel) 4-UW||799.0|http://images.acmesports.sports/PING+G30+Irons+-+%28Steel%29+4-UW|1|NOT-AVAILABLE
+676|31|PING G30 Irons - (Graphite) 4-UW||899.0|http://images.acmesports.sports/PING+G30+Irons+-+%28Graphite%29+4-UW|1|NOT-AVAILABLE
+cat: Unable to write to output stream.
+
+[cloudera@quickstart ~]$ hadoop fs -cat /user/cloudera/problem5/products-text/part-m-00002 | tail
+991|45|Bushnell 2014 Tour V3 Patriot Pack Laser Rang||299.99|http://images.acmesports.sports/Bushnell+2014+Tour+V3+Patriot+Pack+Laser+Rangefinder|-1|NOT-AVAILABLE
+992|45|Under Armour Men's Highlight MC Football Clea||129.99|http://images.acmesports.sports/Under+Armour+Men%27s+Highlight+MC+Football+Cleat|-1|NOT-AVAILABLE
+993|45|Under Armour Men's Highlight MC Football Clea||129.99|http://images.acmesports.sports/Under+Armour+Men%27s+Highlight+MC+Football+Cleat|-1|NOT-AVAILABLE
+994|45|Primos Truth Cam Supercharged Blackout 7 MP G||99.99|http://images.acmesports.sports/Primos+Truth+Cam+Supercharged+Blackout+7+MP+Game+Camera|-1|NOT-AVAILABLE
+995|45|Bushnell 2014 Tour V3 Slope Patriot Pack Lase||399.99|http://images.acmesports.sports/Bushnell+2014+Tour+V3+Slope+Patriot+Pack+Laser+Rangefinder|-1|WEAK
+996|45|Bushnell Golf Tour v3 Patriot Pack Laser Rang||299.99|http://images.acmesports.sports/Bushnell+Golf+Tour+v3+Patriot+Pack+Laser+Rangefinder|-1|NOT-AVAILABLE
+997|45|Under Armour Men's Highlight MC Football Clea||129.99|http://images.acmesports.sports/Under+Armour+Men%27s+Highlight+MC+Football+Cleat|-1|NOT-AVAILABLE
+998|45|Bushnell NEO-X Golf GPS Watch||179.99|http://images.acmesports.sports/Bushnell+NEO-X+Golf+GPS+Watch|-1|NOT-AVAILABLE
+999|45|Timberland PRO Men's Pit Boss 6" Steel Toe Wo||99.99|http://images.acmesports.sports/Timberland+PRO+Men%27s+Pit+Boss+6%22+Steel+Toe+Work+Boot|-1|NOT-AVAILABLE
+

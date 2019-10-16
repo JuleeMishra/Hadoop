@@ -1,0 +1,4 @@
+org.apache.spark.sql.catalyst.errors.package$TreeNodeException: execute, tree:
+TungstenExchange hashpartitioning(department_id#93,200), None
++- Project [department_id#93,product_id#84,product_category_id#85,product_name#86,product_price#88]
+

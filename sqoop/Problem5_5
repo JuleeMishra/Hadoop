@@ -1,0 +1,47 @@
+*************************************************************************************************************
+Using sqoop do the following. Read the entire steps before you create the sqoop job.
+create a sqoop job Import Products_replica table as text file to directory /user/cloudera/problem5/products-incremental. Import all the records.
+insert three more records to Products_replica from mysql
+run the sqoop job again so that only newly added records can be pulled from mysql
+insert 2 more records to Products_replica from mysql
+run the sqoop job again so that only newly added records can be pulled from mysql
+Validate to make sure the records have not be duplicated in HDFS
+*************************************************************************************************************
+create a job which import data from rdbms
+
+[cloudera@quickstart ~]$ sqoop job \
+--create first_sqoop_job \
+-- import \
+--connect jdbc:mysql://localhost/retail_db \
+--username root \
+--password cloudera \
+--target-dir '/user/cloudera/problem5/products-incremental' 
+--as-textfile
+--table products-replica \
+--check-column product_id \
+--incremental append \
+--last-value 0
+
+Note: there should be a space between -- & import
+
+****Execute the job without inserting records:
+	[cloudera@quickstart ~]$ sqoop job --exec first_sqoop_job
+	18/04/05 11:03:29 INFO mapreduce.ImportJobBase: Retrieved 1345 records.
+	  VALIDATION:
+	Check the last record stored in the target directory:
+	[[cloudera@quickstart ~]$ hadoop fs -ls /user/cloudera/problem5/products-incremental
+	Found 4 items
+	-rw-r--r--   1 cloudera cloudera      44758 2018-04-05 11:03 /user/cloudera/problem5/products-incremental/part-m-00000
+	-rw-r--r--   1 cloudera cloudera      47014 2018-04-05 11:03 /user/cloudera/problem5/products-incremental/part-m-00001
+	-rw-r--r--   1 cloudera cloudera      45522 2018-04-05 11:03 /user/cloudera/problem5/products-incremental/part-m-00002
+	-rw-r--r--   1 cloudera cloudera      50065 2018-04-05 11:03 /user/cloudera/problem5/products-incremental/part-m-00003
+	[cloudera@quickstart ~]$ hadoop fs -cat /user/cloudera/problem5/products-incremental/part-m-00003 | tail   -----> should be 1345
+	1345,59,Nike Men's Home Game Jersey St. Louis Rams Gr,,100.0,http://images.acmesports.sports/Nike+Men%27s+Home+Game+Jersey+St.+Louis+Rams+Greg+Robinson...,null,null
+
+****Insert the record into table---> run the job ---> check the record present in the hdfs target-dir
+mysql> insert into products_replica values (1346, 1111, "Apple", "Phone", 90000.99, "https://apple.com", 12345677, "Top")
+mysql> insert into products_replica values (1347, 22222, "Samsung", "TV", 56000.99, "https://samsung.com", 89765544, "Top");
+mysql> insert into products_replica values (1348, 223333, "Lenovo", "Laptop", 26000.99, "https://lenovo.com",5677888, "Top Brand");
+
+	Execute the job:
+	[cloudera@quickstart ~]$ sqoop job --exec first_sqoop_job

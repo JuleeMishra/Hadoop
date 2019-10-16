@@ -1,0 +1,316 @@
+********************************************************************************************************************
+Upload sql table into hdfs using sqoop  
+NOTE: recite VVI part (ctrl+F===>VVI)
+**************************************************************************************************************
+[cloudera@quickstart ~]$ sqoop import \--connect jdbc:mysql://localhost/retail_db \
+> --username root \
+> --password cloudera \
+> --table orders \
+> --target-dir /user/cloudera/problem1/orders \
+> --as-avrodatafile \
+> --compress \
+> --compression-codec org.apache.hadoop.io.compress.SnappyCodec \              -----------> VVI
+> --m 1
+
+[cloudera@quickstart ~]$ sqoop import \--connect jdbc:mysql://localhost/retail_db \
+> --username root \
+> --password cloudera \
+> --table orders_items \
+> --target-dir /user/cloudera/problem1/order-items \
+> --as-avrodatafile \
+> --compress \
+> --compression-codec org.apache.hadoop.io.compress.SnappyCodec \
+> --m 1
+
+********************************************************************************************************************
+ uploaded table records into hdfs path
+**************************************************************************************************************
+
+[cloudera@quickstart ~]$ hadoop fs -ls /user/cloudera/problem1/orders
+Found 2 items
+-rw-r--r--   1 cloudera cloudera          0 2018-03-27 15:34 /user/cloudera/problem1/orders/_SUCCESS
+-rw-r--r--   1 cloudera cloudera     660198 2018-03-27 15:34 /user/cloudera/problem1/orders/part-m-00000.avro
+[cloudera@quickstart ~]$ hadoop fs -ls /user/cloudera/problem1/order-items
+Found 2 items
+-rw-r--r--   1 cloudera cloudera          0 2018-03-27 15:36 /user/cloudera/problem1/order-items/_SUCCESS
+-rw-r--r--   1 cloudera cloudera    1526314 2018-03-27 15:36 /user/cloudera/problem1/order-items/part-m-00000.avro
+
+
+********************************************************************************************************************
+4. load hdfs avro (part-m-00000.avro) data as dataframe using spark and scala
+********************************************************************************************************************
+**************************
+4a: By using dataframe API
+**************************
+scala> import com.databricks.spark.avro._;
+scala> val ordersDF = sqlContext.read.avro("/user/cloudera/problem1/orders")
+ordersDF: org.apache.spark.sql.DataFrame = [order_id: int, order_date: bigint, order_customer_id: int, order_status: string]
+
+scala> val orderItemsDF = sqlContext.read.avro("/user/cloudera/problem1/order-items")
+orderItemsDF: org.apache.spark.sql.DataFrame = [order_item_id: int, order_item_order_id: int, order_item_product_id: int, order_item_quantity: int, order_item_subtotal: float, order_item_product_price: float]
+
+*******************************************************************************************************************
+Join both dataframe
+*******************************************************************************************************************
+scala> val orderJoin = ordersDF.join(orderItemsDF, ordersDF("order_id") === orderItemsDF("order_item_order_id"))
+orderJoin: org.apache.spark.sql.DataFrame = [order_id: int, order_date: bigint, order_customer_id: int, order_status: string, order_item_id: int, order_item_order_id: int, order_item_product_id: int, order_item_quantity: int, order_item_subtotal: float, order_item_product_price: float]
+scala> orderJoin.show(5)
++--------+-------------+-----------------+---------------+-------------+-------------------+---------------------+-------------------+-------------------+------------------------+
+|order_id|   order_date|order_customer_id|   order_status|order_item_id|order_item_order_id|order_item_product_id|order_item_quantity|order_item_subtotal|order_item_product_price|
++--------+-------------+-----------------+---------------+-------------+-------------------+---------------------+-------------------+-------------------+------------------------+
+|       1|1374735600000|            11599|         CLOSED|            1|                  1|                  957|                  1|             299.98|                  299.98|
+|       2|1374735600000|              256|PENDING_PAYMENT|            2|                  2|                 1073|                  1|             199.99|                  199.99|
+|       2|1374735600000|              256|PENDING_PAYMENT|            3|                  2|                  502|                  5|              250.0|                    50.0|
+|       2|1374735600000|              256|PENDING_PAYMENT|            4|                  2|                  403|                  1|             129.99|                  129.99|
+|       4|1374735600000|             8827|         CLOSED|            5|                  4|                  897|                  2|              49.98|                   24.99|
++--------+-------------+-----------------+---------------+-------------+-------------------+---------------------+-------------------+-------------------+------------------------+
+only showing top 5 rows
+
+
+******************************************************************************************************************
+perform aggregation and group by on both table
+******************************************************************************************************************
+********
+4a: By using Data Frames API
+********
+scala> val a_sortedResultsDF = orderJoin.groupBy(to_date(from_unixtime(col("order_date")/1000)).alias("formatted_date"),col("order_status")).agg(round(sum(col("order_item_subtotal")),2).alias("total_amount") ,countDistinct(col("order_id")).alias("total_orders")).orderBy(col("formatted_date").desc,col("order_status"),col("total_amount").desc,col("total_orders")) .show(5)
+a_sortedResultsDF: org.apache.spark.sql.DataFrame = [formatted_date: date, order_status: string, total_amount: double, total_orders: bigint]
+
++--------------+---------------+------------+------------+                      
+|formatted_date|   order_status|total_amount|total_orders|
++--------------+---------------+------------+------------+
+|    2014-07-24|       CANCELED|     1254.92|           2|
+|    2014-07-24|         CLOSED|    16333.16|          26|
+|    2014-07-24|       COMPLETE|    34552.03|          55|
+|    2014-07-24|        ON_HOLD|     1709.74|           4|
+|    2014-07-24| PAYMENT_REVIEW|      499.95|           1|
+|    2014-07-24|        PENDING|    12729.49|          22|
+|    2014-07-24|PENDING_PAYMENT|     17680.7|          34|
+|    2014-07-24|     PROCESSING|     9964.74|          17|
+|    2014-07-24|SUSPECTED_FRAUD|     2351.61|           4|
+|    2014-07-23|       CANCELED|     5777.33|          10|
+|    2014-07-23|         CLOSED|    13312.72|          18|
+|    2014-07-23|       COMPLETE|    25482.51|          40|
+|    2014-07-23|        ON_HOLD|     4514.46|           6|
+|    2014-07-23| PAYMENT_REVIEW|     1699.82|           2|
+|    2014-07-23|        PENDING|     6161.37|          11|
+|    2014-07-23|PENDING_PAYMENT|    19279.81|          30|
+|    2014-07-23|     PROCESSING|     7962.79|          15|
+|    2014-07-23|SUSPECTED_FRAUD|     3799.57|           6|
+|    2014-07-22|       CANCELED|     3209.73|           4|
+|    2014-07-22|         CLOSED|    12688.79|          20|
++--------------+---------------+------------+------------+
+only showing top 20 rows
+************
+store the results as parquet file into hdfs using gzip compression under folder
+5a: /user/cloudera/problem1/result4a-gzip
+***********
+scala> sqlContext.setConf("spark.sql.paraquet.compression.codec", "gzip")
+scala> a_sortedResultsDF.write.parquet("/user/cloudera/problem1/result4a-gzip");
+
+[cloudera@quickstart ~]$ hadoop fs -ls /user/cloudera/problem1
+Found 3 items
+drwxr-xr-x   - cloudera cloudera          0 2018-03-27 15:36 /user/cloudera/problem1/order-items
+drwxr-xr-x   - cloudera cloudera          0 2018-03-27 15:34 /user/cloudera/problem1/orders
+drwxr-xr-x   - cloudera cloudera          0 2018-03-28 14:25 /user/cloudera/problem1/result4a-gzip
+
+
+**************************
+4b: By using sparkSQL
+**************************
+scala> orderJoin.registerTempTable("orderJoin")
+scala> val b_sortedResult = sqlContext.sql("select to_date(from_unixtime((order_date/1000))), order_status, round(sum(order_item_subtotal),2) total_amount, count(distinct(order_id)) total_order from orderJoin "+
+      "group by order_date,order_status "+
+      "order by order_date desc, order_status,total_amount desc, total_order").show()
+b_sortedResult: org.apache.spark.sql.DataFrame = [_c0: date, order_status: string, total_amount: double, total_order: bigint]
+
++----------+---------------+------------+-----------+                           
+|       _c0|   order_status|total_amount|total_order|
++----------+---------------+------------+-----------+
+|2014-07-24|       CANCELED|     1254.92|          2|
+|2014-07-24|         CLOSED|    16333.16|         26|
+|2014-07-24|       COMPLETE|    34552.03|         55|
+|2014-07-24|        ON_HOLD|     1709.74|          4|
+|2014-07-24| PAYMENT_REVIEW|      499.95|          1|
+|2014-07-24|        PENDING|    12729.49|         22|
+|2014-07-24|PENDING_PAYMENT|     17680.7|         34|
+|2014-07-24|     PROCESSING|     9964.74|         17|
+|2014-07-24|SUSPECTED_FRAUD|     2351.61|          4|
+|2014-07-23|       CANCELED|     5777.33|         10|
+|2014-07-23|         CLOSED|    13312.72|         18|
+|2014-07-23|       COMPLETE|    25482.51|         40|
+|2014-07-23|        ON_HOLD|     4514.46|          6|
+|2014-07-23| PAYMENT_REVIEW|     1699.82|          2|
+|2014-07-23|        PENDING|     6161.37|         11|
+|2014-07-23|PENDING_PAYMENT|    19279.81|         30|
+|2014-07-23|     PROCESSING|     7962.79|         15|
+|2014-07-23|SUSPECTED_FRAUD|     3799.57|          6|
+|2014-07-22|       CANCELED|     3209.73|          4|
+|2014-07-22|         CLOSED|    12688.79|         20|
++----------+---------------+------------+-----------+
+only showing top 20 rows
+
+
+scala> sqlContext.sql("select  order_date, order_status, sum(order_item_subtotal), distinct(order_id) from orderJoin groupBy order_date,order_status")
+
+*************************************
+4c: By using combineByKey on RDD
+*************************************
+>>>> create an PairedRDD from DF
+scala> val c_sortedResult = orderJoin.map(str => {
+     |       ((str(1).toString,str(3).toString), (str(8).toString.toDouble, str(0).toString.toInt))
+     |       })
+c_sortedResult: org.apache.spark.rdd.RDD[((String, String), (Double, Int))] = MapPartitionsRDD[82] at map at <console>:34
+
+scala> sortedResult.take(5).foreach(println)
+((1374735600000,CLOSED),(299.98,1))      //((date, status),(subtotal,order_id)) --->(k,v)
+((1374735600000,PENDING_PAYMENT),(199.99,2))
+((1374735600000,PENDING_PAYMENT),(250.0,2))
+((1374735600000,PENDING_PAYMENT),(129.99,2))
+((1374735600000,CLOSED),(49.98,4))
+
+
+scala> val combinerResult = sortedResult.combineByKey((x:(Double, Int)) => (x._1, Set(x._2)),
+     | (x:(Double,Set[Int]),y:(Double, Int)) => (x._1 + y._1, x._2+y._2),
+     | (x:(Double,Set[Int]),y:(Double,Set[Int])) => (x._1 + y._1, x._2++y._2))
+combinerResult: org.apache.spark.rdd.RDD[((String, String), (Double, scala.collection.immutable.Set[Int]))] = ShuffledRDD[942] at combineByKey at <console>:36
+NOTE: ++ denotes that it combines two collections and gives you third collection
+
+scala> combinerResult.take(5).foreach(println)
+((1401778800000,PAYMENT_REVIEW),(869.89,Set(50095, 50143)))
+((1405839600000,PENDING_PAYMENT),(42806.090000000026,Set(57144, 56983, 56925, 57086, 57050, 57089, 67296, 68681, 57040, 67277, 56916, 57121, 57071, 57022, 57028, 57003, 56958, 56971, 57147, 57100, 57107, 67307, 67268, 56941, 56967, 57096, 56918, 68678, 56917, 57019, 57116, 56987, 57129, 67284, 57020, 56946, 57123, 57091, 67294, 57062, 56981, 56963, 57013, 68680, 56973, 56940, 57069, 57005, 57037, 56939, 56997, 57034, 67273, 56926, 57066, 56943, 57090, 57103, 67278, 57076, 57094, 56936, 56970, 57025, 57099, 67285, 56976, 56974, 56929)))
+((1376463600000,PROCESSING),(15425.189999999993,Set(3566, 58261, 3517, 3463, 3527, 67492, 3492, 3510, 3450, 3459, 3555, 3486, 58281, 3532, 67491, 3539, 3457, 58263, 3516, 3464, 3558, 3570)))
+((1405407600000,PAYMENT_REVIEW),(2808.6900000000005,Set(56097, 56137, 67119, 67147)))
+((1381129200000,PAYMENT_REVIEW),(579.95,Set(12146, 12160)))
+
+scala> val combineResult = combinerResult.map(x => (x._1._1, x._1._2, x._2._1, x._2._2.size))
+combineResult: org.apache.spark.rdd.RDD[(String, String, Double, Int)] = MapPartitionsRDD[944] at map at <console>:38
+
+scala> combineResult.take(5).foreach(println)
+(1401778800000,PAYMENT_REVIEW,869.89,2)
+(1405839600000,PENDING_PAYMENT,42806.090000000026,69)
+(1376463600000,PROCESSING,15425.189999999993,22)
+(1405407600000,PAYMENT_REVIEW,2808.6900000000005,4)
+(1381129200000,PAYMENT_REVIEW,579.95,2)
+
+
+NOTE:now we perform sort by on our combineResult (NOTE: since sortby is difficult on RDD, so we convert rdd to DF and we easily perform order by on columns)
+val combineResult = combinerResult.map(x => (x._1._1, x._1._2, x._2._1, x._2._2.size))
+
+scala> val sortedResult = combineResult.toDF("order_date","order_status","total_amount","total_order").orderBy(col("_1").desc,col("_2"),col("_3").desc,col("_4"))
+sortedResult: org.apache.spark.sql.DataFrame = [order_date: string, order_status: string, total_amount: double, total_order: int]
+scala> sortedResult.show()
++-------------+---------------+------------------+-----------+
+|   order_date|   order_status|      total_amount|total_order|
++-------------+---------------+------------------+-----------+
+|1406185200000|       CANCELED|           1254.92|          2|
+|1406185200000|         CLOSED|16333.159999999983|         26|
+|1406185200000|       COMPLETE| 34552.03000000002|         55|
+|1406185200000|        ON_HOLD|1709.7400000000002|          4|
+|1406185200000| PAYMENT_REVIEW|            499.95|          1|
+|1406185200000|        PENDING|12729.489999999994|         22|
+|1406185200000|PENDING_PAYMENT| 17680.69999999999|         34|
+|1406185200000|     PROCESSING| 9964.739999999994|         17|
+|1406185200000|SUSPECTED_FRAUD|           2351.61|          4|
+|1406098800000|       CANCELED| 5777.329999999999|         10|
+|1406098800000|         CLOSED|13312.719999999996|         18|
+|1406098800000|       COMPLETE|          25482.51|         40|
+|1406098800000|        ON_HOLD| 4514.459999999999|          6|
+|1406098800000| PAYMENT_REVIEW|1699.8200000000002|          2|
+|1406098800000|        PENDING|           6161.37|         11|
+|1406098800000|PENDING_PAYMENT|19279.809999999998|         30|
+|1406098800000|     PROCESSING| 7962.789999999998|         15|
+|1406098800000|SUSPECTED_FRAUD|3799.5700000000006|          6|
+|1406012400000|       CANCELED|           3209.73|          4|
+|1406012400000|         CLOSED| 12688.78999999999|         20|
++-------------+---------------+------------------+-----------+
+only showing top 20 rows
+
+
+var KV = joinedOrderDataDF.map(x=> ((x(1).toString,x(3).toString),(x(8).toString.toFloat,x(0).toString)))
+
+val comByKeyResult = KV.combineByKey(
+(x:(Float, String))=>(x._1,Set(x._2)),
+(x:(Float,Set[String]),y:(Float,String))=>(x._1 + y._1,x._2+y._2),
+(x:(Float,Set[String]),y:(Float,Set[String]))=>(x._1+y._1,x._2++y._2)
+)
+
+NOTE: set() function removes all the duplicates and return unique values.
+example a = (6,7,3,3,6,2,1,6,3,1) then
+set(a) returns (6,7,3,2,1)
+map(x=> (x._1._1,x._1._2,x._2._1,x._2._2.size)).
+toDF().orderBy(col("_1").desc,col("_2"),col("_3").desc,col("_4"));
+************************************************************************************************************************************************************************************************************************************
+****************************
+5: store the results as parquet file into hdfs using gzip compression under folder
+************************************************************************************************************************************************************************************************************************************
+===================
+5a: /user/cloudera/problem1/result4a-gzip
+===================
+scala> sqlContext.setConf("spark.sql.paraquet.compression.codec", "gzip")
+scala> a_sortedResult.write.parquet("/user/cloudera/problem1/result4a-gzip");
+===================
+5b:/user/cloudera/problem1/result4b-gzip
+===================
+scala> sqlContext.setConf("spark.sql.paraquet.compression.codec", "gzip")
+scala> b_sortedResult.write.parquet("/user/cloudera/problem1/result4b-gzip");
+===================
+5b:/user/cloudera/problem1/result4c-gzip
+===================
+scala> sqlContext.setConf("spark.sql.paraquet.compression.codec", "gzip")
+scala> c_sortedResult.write.parquet("/user/cloudera/problem1/result4c-gzip"); 
+
+************************************************************************************************************************************************************************************************************************************
+Store the result as parquet file into hdfs using snappy compression under folder 
+************************************************************************************************************************************************************************************************************************************
+===================
+6a: /user/cloudera/problem1/result4a-snappy
+===================
+scala> sqlContext.setConf("spark.sql.paraquet.compression.codec", "snappy")
+scala> b_sortedResult.write.parquet("/user/cloudera/problem1/result4a-snappy");
+===================
+6b: /user/cloudera/problem1/result4b-snappy
+===================
+scala> sqlContext.setConf("spark.sql.paraquet.compression.codec", "snappy")
+scala> b_sortedResult.write.parquet("/user/cloudera/problem1/result4b-snappy");
+===================
+6c: /user/cloudera/problem1/result4c-snappy
+===================
+scala> sqlContext.setConf("spark.sql.paraquet.compression.codec", "snappy")
+scala> b_sortedResult.write.parquet("/user/cloudera/problem1/result4c-snappy");
+===================
+    
+************************************************************************************************************************************************************************************************************************************
+Store the result as parquet file into hdfs using snappy compression under folder 
+************************************************************************************************************************************************************************************************************************************
+Note: spark 1.6 doesn't have builtin functionality to output csv compressed file. So we need to do some extraction of data and create "," separated line then save as text file
+===================
+7a: /user/cloudera/problem1/result4a-csv
+===================
+
+
+
+===================
+7b: /user/cloudera/problem1/result4b-csv
+===================
+scala> b_sortedResult.map(x => x(0)+","+ x(1)+","+ x(2)+","+ x(3))
+res19: org.apache.spark.rdd.RDD[String] = MapPartitionsRDD[138] at map at <console>:34
+
+scala> b_sortedResult.map(x => x(0)+","+ x(1)+","+ x(2)+","+ x(3)).take(5).foreach(println)
+2014-07-24,CANCELED,1254.92,2                                                   
+2014-07-24,CLOSED,16333.16,26
+2014-07-24,COMPLETE,34552.03,55
+2014-07-24,ON_HOLD,1709.74,4
+2014-07-24,PAYMENT_REVIEW,499.95,1
+scala> b_sortedResult.map(x => x(0)+","+ x(1)+","+ x(2)+","+ x(3)).saveAsTextFile("/user/cloudera/problem1/result4b-csv")
+
+===================
+7c: /user/cloudera/problem1/result4b-csv
+===================
+ 
+
+    
+
+
+
+

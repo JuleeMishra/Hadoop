@@ -1,0 +1,75 @@
+*************************************************************************************************************
+Using sqoop do the following. .
+insert 2 more records into products_hive table using hive. 
+create table in mysql using below command   
+create table products_external  (product_id int(11) primary Key, product_grade int(11), product_category_id int(11), product_name varchar(100), product_description varchar(100), product_price float, product_impage varchar(500), product_sentiment varchar(100));
+Export data from products_hive (hive) table to (mysql) products_external table. 
+insert 2 more records to Products_hive table from hive export data from products_hive table to products_external table. 
+Validate to make sure the records have not be duplicated in mysql table
+*************************************************************************************************************
+**************Export data from hive to mysql:*****************8
+Insert records into hive table:
+hive> insert into table products_hive values (1380,4,'something 1380','something 2',8.00,'not avaialble',3,'NOT APPLICABLE');
+hive> insert into table products_hive values (1381,4,'something 1380','something 2',8.00,'not avaialble',3,'NOT APPLICABLE');
+
+mysql> create table products_external  (product_id int(11) primary Key, product_grade int(11), product_category_id int(11), product_name varchar(100), product_description varchar(100), product_price float, product_impage varchar(500), product_sentiment varchar(100));
+hive> desc products_hive;
+OK
+product_id          	int      --> Source table           	                    
+product_category_id 	int                 	                    
+product_name        	string              	                    
+product_description 	string              	                    
+product_price       	float               	                    
+product_image       	string              	                    
+product_grade       	int                 	                    
+product_sentiment   	string 
+
+mysql> desc products_external; --> destination table
+OK
+product_id          	int     
+product_grade       	int             	                    
+product_category_id 	int                 	                    
+product_name        	string              	                    
+product_description 	string              	                    
+product_price       	float               	                    
+product_impage       	string              	                                    	                    
+product_sentiment   	string 
+
+Now if we see the tables(hive and mysql) there are mismatch of the table column name. 
+There is a --column in sqoop export which takes column as (the position corresponds to the source(hive) and name corresponds to the destination(mysql))
+NOTE:
+	to make sqoop understand on how to handle the mismached column we do following:
+	Hive tables are stored on the HDFS location: 
+	[cloudera@quickstart ~]$ hadoop fs -ls /user/hive/warehouse
+	     Found 3 items
+	     drwxr-xr-x   - cloudera supergroup          0 2018-04-05 12:42 /user/hive/warehouse/problem5.db
+	     drwxr-xr-x   - cloudera supergroup          0 2018-04-01 22:41 /user/hive/warehouse/retail.db
+	     drwxr-xr-x   - cloudera supergroup          0 2018-04-01 18:27 /user/hive/warehouse/retail_stage.db
+
+
+hive> select count (*) from products_hive      -----> 1352
+mysql> select count(*) from products_external; ----> 0
+
+[cloudera@quickstart ~]$ sqoop export 
+--connect jdbc:mysql://localhost/retail_db 
+--username root 
+--password cloudera 
+--export-dir '/user/hive/warehouse/problem5.db/products_hive' 
+--input-fields-terminated-by '\001' 
+--input-null-non-string "null" 
+--input-null-string "null" 
+--columns "product_id, product_category_id, product_name, product_description, product_price, product_impage, product_grade, product_sentiment" 							##(always copy column names from destination table.)
+--update-mode allowinsert 
+--update-key product_id 
+--table products_external
+
+18/04/05 16:16:51 INFO mapreduce.ExportJobBase: Exported 1352 records.
+
+VALIDATE:
+ On Hive
+ 	hive> select count(*) from products_hive; ----> 1352
+ On MySQL
+	mysql> select count(*) from products_external; ---> 1352
+
+
+

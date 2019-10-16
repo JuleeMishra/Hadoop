@@ -1,0 +1,4 @@
+INFO Counter A initialized in Redis
+WARN to Sender object is null
+INFO Counter C initialized in Redis
+DEBUG Counter C value 1234

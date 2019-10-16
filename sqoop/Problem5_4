@@ -1,0 +1,47 @@
+*************************************************************************************************************
+Using sqoop merge data available in /user/cloudera/problem5/products-text-part1 and /user/cloudera/problem5/products-text-part2 to produce a new set of files in /user/cloudera/problem5/products-text-both-parts
+*************************************************************************************************************
+[cloudera@quickstart ~]$ sqoop merge --help
+Warning: /usr/lib/sqoop/../accumulo does not exist! Accumulo imports will fail.
+Please set $ACCUMULO_HOME to the root of your Accumulo installation.
+18/04/04 18:42:00 INFO sqoop.Sqoop: Running Sqoop version: 1.4.6-cdh5.8.0
+usage: sqoop merge [GENERIC-ARGS] [TOOL-ARGS]
+
+Merge arguments:
+   --class-name <name>     Specify record class name to load
+   --help                  Print usage instructions
+   --jar-file <file>       Load class from specified jar file
+   --merge-key <column>    Key column to use to join results
+   --new-data <path>       Path to the more recent data set
+   --onto <path>           Path to the older data set
+   --target-dir <path>     Destination path for merged results
+   --verbose               Print more information while working
+
+[cloudera@quickstart ~]$ sqoop merge \
+> --class-name products_replica \
+> --jar-file /tmp/sqoop-cloudera/compile/e2d9feb3b97d2ea9ed0f58ce7b31f309/products_replica.jar \ 
+> --new-data /user/cloudera/problem5/products-text-part2 \
+> --onto /user/cloudera/problem5/products-text-part1 \
+> --target-dir '/user/cloudera/problem5/products-text-both-parts' \ 
+> --merge-key product_id
+
+// .jar file produced while cmpiling sqoop import --table products_replica -->/home/cloudera/sqoop3/products_replica.java
+VALIDATIONS:
+a) Check the file path
+[cloudera@quickstart ~]$ hadoop fs -ls /user/cloudera/problem5/products-text-both-parts
+Found 2 items
+-rw-r--r--   1 cloudera cloudera          0 2018-04-04 18:57 /user/cloudera/problem5/products-text-both-parts/_SUCCESS
+-rw-r--r--   1 cloudera cloudera     186128 2018-04-04 18:57 /user/cloudera/problem5/products-text-both-parts/part-r-00000
+b) Check the total records present in jar file matches with actual
+It should match with records present in the products_replica table
+
+mysql> select count(*) from products_replica;
++----------+
+| count(*) |
++----------+
+|     1345 |
++----------+
+1 row in set (0.01 sec)
+
+Check with:
+[cloudera@quickstart ~]$ vi part-r-00000   ---> it should show 1345 records

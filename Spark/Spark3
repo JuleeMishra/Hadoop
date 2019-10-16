@@ -1,0 +1,58 @@
+scala> val opd =sc.textFile("/user/spark/applicationHistory/opd.csv")
+opd: org.apache.spark.rdd.RDD[String] = /user/spark/applicationHistory/opd.csv MapPartitionsRDD[1] at textFile at <console>:27
+
+scala> opd.foreach(println)
+mani,10-10-2011
+cc, 10-10-2011
+vijay, 1-11-2011
+vijay,1-1-2011
+mani,10-10-2011
+vijay,10-10-2011
+mani,10-10-2011
+cc,10-10-2011
+
+scala> val pd =sc.textFile("/user/spark/applicationHistory/pd.txt")
+pd: org.apache.spark.rdd.RDD[String] = /user/spark/applicationHistory/pd.txt MapPartitionsRDD[3] at textFile at <console>:27
+
+
+scala> pd.foreach(println)
+mani
+cc
+vijay
+
+scala> val pdr = pd.map(a => (a,1))
+pdr: org.apache.spark.rdd.RDD[(String, Int)] = MapPartitionsRDD[4] at map at <console>:29
+
+scala> pdr.foreach(println)
+(mani,1)
+(cc,1)
+(vijay,1)
+
+
+scala> val opdr = opd.flatMap(l => l.split(",")).map(w => (w,1)).reduceByKey((a,b)=>a+b)
+opdr: org.apache.spark.rdd.RDD[(String, Int)] = ShuffledRDD[7] at reduceByKey at <console>:29
+
+scala> opdr.foreach(println)
+(1-1-2011,1)
+(mani,3)
+(10-10-2011,5)
+( 10-10-2011,1)
+(vijay,3)
+( 1-11-2011,1)
+(cc,2)
+
+scala> pdr.join(opdr).saveAsTextFile("/user/spark/applicationHistory/Results")
+
+[cloudera@quickstart Desktop]$ hadoop fs -ls /user/spark/applicationHistory/Results
+Found 2 items
+-rw-r--r--   1 cloudera supergroup          0 2017-10-13 22:55 /user/spark/applicationHistory/Results/_SUCCESS
+-rw-r--r--   1 cloudera supergroup         38 2017-10-13 22:55 /user/spark/applicationHistory/Results/part-00000
+
+[cloudera@quickstart Desktop]$ hadoop fs -cat /user/spark/applicationHistory/Results/part-00000
+(mani,(1,3))
+(vijay,(1,3))
+(cc,(1,2))
+
+
+
+

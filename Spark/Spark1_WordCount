@@ -1,0 +1,96 @@
+scala> val textFile = sc.textFile("/user/spark/applicationHistory/testFile.txt")
+textFile: org.apache.spark.rdd.RDD[String] = /user/spark/applicationHistory/testFile.txt MapPartitionsRDD[10] at textFile at <console>:27
+
+scala> textFile.foreach(println)
+This is a test file
+Another line starts here
+this is third and last line
+
+//flatMap produce multiple records from one record.
+scala> val words = textFile.flatMap((line => line.split(" ")))
+words: org.apache.spark.rdd.RDD[String] = MapPartitionsRDD[11] at flatMap at <console>:29
+
+scala> words.foreach(println)
+This
+is
+a
+test
+file
+Another
+line
+starts
+here
+this
+is
+third
+and
+last
+line
+
+//map produce one record from each record. here each record (word) produces one record (word,1)
+scala> val count = words.map(word => (word,1))
+count: org.apache.spark.rdd.RDD[(String, Int)] = MapPartitionsRDD[12] at map at <console>:31
+
+scala> count.foreach(println)
+(This,1)
+(is,1)
+(a,1)
+(test,1)
+(file,1)
+(Another,1)
+(line,1)
+(starts,1)
+(here,1)
+(this,1)
+(is,1)
+(third,1)
+(and,1)
+(last,1)
+(line,1)
+
+scala> val AccuWordCount = count.reduceByKey((a,b)=> (a+b)) 
+AccuWordCount: org.apache.spark.rdd.RDD[(String, Int)] = ShuffledRDD[4] at reduceByKey at <console>:33
+
+scala> AccuWordCount.foreach(println)
+(this,1)
+(Another,1)
+(is,2)
+(a,1)
+(line,2)
+(last,1)
+(here,1)
+(This,1)
+(third,1)
+(and,1)
+(starts,1)
+(file,1)
+(test,1)
+
+scala> AccuWordCount.saveAsTextFile("/user/spark/applicationHistory/Results")
+
+[cloudera@quickstart Desktop]$ hadoop fs -ls /user/spark/applicationHistory/Results
+Found 2 items
+-rw-r--r--   1 cloudera supergroup          0 2017-10-13 18:35 /user/spark/applicationHistory/Results/_SUCCESS
+-rw-r--r--   1 cloudera supergroup        117 2017-10-13 18:35 /user/spark/applicationHistory/Results/part-00000
+
+
+[cloudera@quickstart Desktop]$ hadoop fs -cat /user/spark/applicationHistory/Results/part-00000
+(this,1)
+(Another,1)
+(is,2)
+(a,1)
+(line,2)
+(last,1)
+(here,1)
+(This,1)
+(third,1)
+(and,1)
+(starts,1)
+(file,1)
+(test,1)
+[cloudera@quickstart Desktop]$ 
+
+
+
+
+

@@ -1,0 +1,79 @@
+*************************************************************************************************************
+Using sqoop, import products_replica table from MYSQL into hdfs such that fields are separated by a '*' and lines are separated by '\n'. Null values are represented as -1000 for numbers and "NA" for strings. Only records with product id less than or equal to 1111 should be imported and use 2 mappers for importing. The destination file should be stored as a text file to directory  /user/cloudera/problem5/products-text-part1. 
+*************************************************************************************************************
+
+[cloudera@quickstart ~]$ sqoop import 
+--connect jdbc:mysql://localhost/retail_db 
+--username root --password cloudera 
+--table products_replica 
+--target-dir '/user/cloudera/problem5/products-text-part1' 
+--fields-terminated-by '*' 
+--m 2 
+--lines-terminated-by '\n' 
+--null-non-string -1000 
+--null-string "NA" 
+--where 'product_id <= 1111' 
+--boundary-query 'select min(product_id), max(product_id) from products_replica where product_id <= 1111' 
+--as-textfile
+--outdir /home/cloudera/sqoop2  ---------(/home/cloudera/sqoop2/products_replica.java)
+
+VALIDATION:
+***This results in two partition
+[cloudera@quickstart ~]$ hadoop fs -ls /user/cloudera/problem5/products-text-part1
+Found 3 items
+-rw-r--r--   1 cloudera cloudera          0 2018-04-04 17:26 /user/cloudera/problem5/products-text-part1/_SUCCESS
+-rw-r--r--   1 cloudera cloudera      74453 2018-04-04 17:26 /user/cloudera/problem5/products-text-part1/part-m-00000
+-rw-r--r--   1 cloudera cloudera      75571 2018-04-04 17:26 /user/cloudera/problem5/products-text-part1/part-m-00001
+
+NOTE: Boundary-query divides the mapper in equal parts. Here it's based on the product_id. All the 1000 records devided into three parts.
+1st mapper: 1-555
+2nd mapper: 555-1111
+
+[cloudera@quickstart ~]$ hadoop fs -cat /user/cloudera/problem5/products-text-part1/part-m-00000 | head
+1*2*Quest Q64 10 FT. x 10 FT. Slant Leg Instant U**59.98*http://images.acmesports.sports/Quest+Q64+10+FT.+x+10+FT.+Slant+Leg+Instant+Up+Canopy*-1000*NA
+2*2*Under Armour Men's Highlight MC Football Clea**129.99*http://images.acmesports.sports/Under+Armour+Men%27s+Highlight+MC+Football+Cleat*-1000*NA
+3*2*Under Armour Men's Renegade D Mid Football Cl**89.99*http://images.acmesports.sports/Under+Armour+Men%27s+Renegade+D+Mid+Football+Cleat*-1000*NA
+4*2*Under Armour Men's Renegade D Mid Football Cl**89.99*http://images.acmesports.sports/Under+Armour+Men%27s+Renegade+D+Mid+Football+Cleat*-1000*NA
+5*2*Riddell Youth Revolution Speed Custom Footbal**199.99*http://images.acmesports.sports/Riddell+Youth+Revolution+Speed+Custom+Football+Helmet*-1000*NA
+6*2*Jordan Men's VI Retro TD Football Cleat**134.99*http://images.acmesports.sports/Jordan+Men%27s+VI+Retro+TD+Football+Cleat*-1000*NA
+7*2*Schutt Youth Recruit Hybrid Custom Football H**99.99*http://images.acmesports.sports/Schutt+Youth+Recruit+Hybrid+Custom+Football+Helmet+2014*-1000*NA
+8*2*Nike Men's Vapor Carbon Elite TD Football Cle**129.99*http://images.acmesports.sports/Nike+Men%27s+Vapor+Carbon+Elite+TD+Football+Cleat*-1000*NA
+9*2*Nike Adult Vapor Jet 3.0 Receiver Gloves**50.0*http://images.acmesports.sports/Nike+Adult+Vapor+Jet+3.0+Receiver+Gloves*-1000*NA
+10*2*Under Armour Men's Highlight MC Football Clea**129.99*http://images.acmesports.sports/Under+Armour+Men%27s+Highlight+MC+Football+Cleat*-1000*NA
+cat: Unable to write to output stream.
+[cloudera@quickstart ~]$ hadoop fs -cat /user/cloudera/problem5/products-text-part1/part-m-00000 | tail
+546*25*Nike Women's Free 4.0 Running Shoe**89.99*http://images.acmesports.sports/Nike+Women%27s+Free+4.0+Running+Shoe*-1000*NA
+547*25*Nike Men's Hypervenom Phantom Premium FG Socc**0.0*http://images.acmesports.sports/Nike+Men%27s+Hypervenom+Phantom+Premium+FG+Soccer+Cleat*-1000*NA
+548*25*Under Armour Women's Micro G Skulpt Running S**54.97*http://images.acmesports.sports/Under+Armour+Women%27s+Micro+G+Skulpt+Running+Shoe*-1000*NA
+549*26*Lotto Men's Zhero Gravity V 700 TF Soccer Cle**59.99*http://images.acmesports.sports/Lotto+Men%27s+Zhero+Gravity+V+700+TF+Soccer+Cleat*-1000*NA
+550*26*adidas Men's 2014 All-Star Game Tactile Hunte**20.0*http://images.acmesports.sports/adidas+Men%27s+2014+All-Star+Game+Tactile+Hunter+Green...*-1000*NA
+551*26*Lotto Men's Zhero Gravity V 700 TF Soccer Cle**59.99*http://images.acmesports.sports/Lotto+Men%27s+Zhero+Gravity+V+700+TF+Soccer+Cleat*-1000*NA
+552*26*Lotto Men's Zhero Gravity V 700 TF Soccer Cle**59.99*http://images.acmesports.sports/Lotto+Men%27s+Zhero+Gravity+V+700+TF+Soccer+Cleat*-1000*NA
+553*26*adidas Men's 2014 MLS All-Star Game Dueling T**24.0*http://images.acmesports.sports/adidas+Men%27s+2014+MLS+All-Star+Game+Dueling+Teams+FlexFit...*-1000*NA
+554*26*adidas Men's 2014 MLS All-Star Game Cross Bla**20.0*http://images.acmesports.sports/adidas+Men%27s+2014+MLS+All-Star+Game+Cross+Blades+Black+Tank*-1000*NA
+555*26*adidas Original Men's 2014 MLS All-Star Game **28.0*http://images.acmesports.sports/adidas+Original+Men%27s+2014+MLS+All-Star+Game+Homestyle...*-1000*NA
+[cloudera@quickstart ~]$ hadoop fs -cat /user/cloudera/problem5/products-text-part1/part-m-00001 | head
+556*26*adidas Original Men's 2014 MLS All-Star Game **28.0*http://images.acmesports.sports/adidas+Original+Men%27s+2014+MLS+All-Star+Game+Bayern+Munich...*-1000*NA
+557*26*adidas Men's 2014 MLS All-Star Game Rose City**28.0*http://images.acmesports.sports/adidas+Men%27s+2014+MLS+All-Star+Game+Rose+City+Grey+Tri-Blend...*-1000*NA
+558*26*adidas Men's 2014 MLS All-Star Game Crest Gre**28.0*http://images.acmesports.sports/adidas+Men%27s+2014+MLS+All-Star+Game+Crest+Grey+T-Shirt*-1000*NA
+559*26*adidas Women's 2014 MLS All-Star Game Dueling**28.0*http://images.acmesports.sports/adidas+Women%27s+2014+MLS+All-Star+Game+Dueling+Grey+Tri-Blend...*-1000*NA
+560*26*adidas Men's 2014 MLS All-Star Game Replica B**85.0*http://images.acmesports.sports/adidas+Men%27s+2014+MLS+All-Star+Game+Replica+Black+Jersey*-1000*NA
+561*26*adidas Men's 2014 MLS All-Star Game Lumber Hu**22.0*http://images.acmesports.sports/adidas+Men%27s+2014+MLS+All-Star+Game+Lumber+Hunter+Green...*-1000*NA
+562*26*adidas Men's 2014 MLS All-Star Game Axis Hunt**22.0*http://images.acmesports.sports/adidas+Men%27s+2014+MLS+All-Star+Game+Axis+Hunter+Green...*-1000*NA
+563*26*adidas Men's Germany 2014 FIFA World Cup Braz**22.0*http://images.acmesports.sports/adidas+Men%27s+Germany+2014+FIFA+World+Cup+Brazil+Champions...*-1000*NA
+564*26*Nike Men's Deutschland Weltmeister Winners Bl**30.0*http://images.acmesports.sports/Nike+Men%27s+Deutschland+Weltmeister+Winners+Black+T-Shirt*-1000*NA
+565*26*adidas Youth Germany Black/Red Away Match Soc**70.0*http://images.acmesports.sports/adidas+Youth+Germany+Black%2FRed+Away+Match+Soccer+Jersey*-1000*NA
+cat: Unable to write to output stream.
+[cloudera@quickstart ~]$ hadoop fs -cat /user/cloudera/problem5/products-text-part1/part-m-00001 | tail
+1102*49*O'Brien Men's Neoprene Life Vest**49.98*http://images.acmesports.sports/O%27Brien+Men%27s+Neoprene+Life+Vest*-1000*NA
+1103*49*Quest 12' x 12' Dome Canopy**149.99*http://images.acmesports.sports/Quest+12%27+x+12%27+Dome+Canopy*-1000*NA
+1104*49*GoPro HERO3+ Black Edition Camera**399.99*http://images.acmesports.sports/GoPro+HERO3%2B+Black+Edition+Camera*-1000*WEAK
+1105*49*ASICS Women's GEL-Nimbus 15 Running Shoe**119.99*http://images.acmesports.sports/ASICS+Women%27s+GEL-Nimbus+15+Running+Shoe*-1000*NA
+1106*50*Majestic Youth 2014 All-Star Game Andrew McCu**60.0*http://images.acmesports.sports/Majestic+Youth+2014+All-Star+Game+Andrew+McCutchen+%2322...*-1000*NA
+1107*50*Majestic Youth 2014 All-Star Game Yadier Moli**60.0*http://images.acmesports.sports/Majestic+Youth+2014+All-Star+Game+Yadier+Molina+%234+National...*-1000*NA
+1108*50*Majestic Youth 2014 All-Star Game Troy Tulowi**60.0*http://images.acmesports.sports/Majestic+Youth+2014+All-Star+Game+Troy+Tulowitzki+%232...*-1000*NA
+1109*50*Majestic Youth 2014 All-Star Game Yasiel Puig**60.0*http://images.acmesports.sports/Majestic+Youth+2014+All-Star+Game+Yasiel+Puig+%2366+National...*-1000*NA
+1110*50*Majestic Youth 2014 All-Star Game Freddie Fre**60.0*http://images.acmesports.sports/Majestic+Youth+2014+All-Star+Game+Freddie+Freeman+%235...*-1000*NA
+1111*50*Majestic Youth 2014 All-Star Game Mike Trout **60.0*http://images.acmesports.sports/Majestic+Youth+2014+All-Star+Game+Mike+Trout+%2327+American...*-1000*NA
+[cloudera@quickstart ~]$ 
+

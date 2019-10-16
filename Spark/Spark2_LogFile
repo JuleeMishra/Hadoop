@@ -1,0 +1,48 @@
+[cloudera@quickstart Desktop]$ hadoop fs -cat /user/spark/applicationHistory/LogFile.txt
+INFO Counter A initialized in Redis
+WARN to Sender object is null
+INFO Counter C initialized in Redis
+DEBUG Counter C value 1234
+
+
+scala> val textFile = sc.textFile("/user/spark/applicationHistory/LogFile.txt")
+textFile: org.apache.spark.rdd.RDD[String] = /user/spark/applicationHistory/LogFile.txt MapPartitionsRDD[7] at textFile at <console>:27
+
+scala> textFile.foreach(println)
+INFO Counter A initialized in Redis
+WARN to Sender object is null
+INFO Counter C initialized in Redis
+DEBUG Counter C value 1234
+
+scala> val words = textFile.map(line => line.split(" "))
+words: org.apache.spark.rdd.RDD[Array[String]] = MapPartitionsRDD[8] at map at <console>:29
+
+scala> words.foreach(println)
+[Ljava.lang.String;@5c48dff5
+[Ljava.lang.String;@34677d28
+[Ljava.lang.String;@7649e7f8
+[Ljava.lang.String;@6e1c8773
+
+scala> val wordCount = words.map(word => (word(0),1))
+wordCount: org.apache.spark.rdd.RDD[(String, Int)] = MapPartitionsRDD[9] at map at <console>:31
+
+scala> wordCount.foreach(println)
+(INFO,1)
+(WARN,1)
+(INFO,1)
+(DEBUG,1)
+                           ^
+
+scala> val LogSeverityCount = wordCount.reduceByKey((a,b) => a+b)
+LogSeverityCount: org.apache.spark.rdd.RDD[(String, Int)] = ShuffledRDD[10] at reduceByKey at <console>:33
+
+
+
+scala> LogSeverityCount.foreach(println)
+(DEBUG,1)
+(INFO,2)
+(WARN,1)
+
+scala>  LogSeverityCount.saveAsTextFile("/user/spark/applicationHistory/Results")
+
+

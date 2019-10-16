@@ -1,0 +1,173 @@
+Lecture: 116
+************************
+Get daily revenue by product considering completed and closed orders.
+ >> PRODUCTS have to be read from local file system. DataFrame need to be created.
+ >> Join ORDERS, ORDER_ITEMS
+ >> Filter on order_status
+Data need to be sorted by ascending order, by date and then descending order by revenue computed for each product for each day.
+ >> Sort data by order_date in ascending order and then daily revenue per product in descending order 
+
+***********************************
+product_is,order_status,date,
+scala> val orderRaw = scala.io.Source.fromFile("/home/cloudera/workspace/training/JuleeFolder/retail_DB/order/part-00000.txt").getLines
+orderRaw: Iterator[String] = non-empty iterator
+
+scala> val orderRaw = scala.io.Source.fromFile("/home/cloudera/workspace/training/JuleeFolder/retail_DB/order/part-00000.txt").getLines.toList
+orderRaw: List[String] = List(1,2013-07-25 00:00:00.0,11599,CLOSED, 2,2013-07-25 00:00:00.0,256,PENDING_PAYMENT, 3,2013-07-25 00:00:00.0,12111,COMPLETE, 4,2013-07-25 00:00:00.0,8827,CLOSED, 5,2013-07-25 00:00:00.0,11318,COMPLETE, 6,2013-07-25 00:00:00.0,7130,COMPLETE, 7,2013-07-25 00:00:00.0,4530,COMPLETE, 8,2013-07-25 00:00:00.0,2911,PROCESSING, 9,2013-07-25 00:00:00.0,5657,PENDING_PAYMENT, 10,2013-07-25 00:00:00.0,5648,PENDING_PAYMENT, 11,2013-07-25 00:00:00.0,918,PAYMENT_REVIEW, 12,2013-07-25 00:00:00.0,1837,CLOSED, 13,2013-07-25 00:00:00.0,9149,PENDING_PAYMENT, 14,2013-07-25 00:00:00.0,9842,PROCESSING, 15,2013-07-25 00:00:00.0,2568,COMPLETE, 16,2013-07-25 00:00:00.0,7276,PENDING_PAYMENT, 17,2013-07-25 00:00:00.0,2667,COMPLETE, 18,2013-07-25 00:00:00.0,1205,CLOSED, 19,2013-07-25 00:0...
+
+scala> val orderRDD = sc.parallelize(orderRaw)
+orderRDD: org.apache.spark.rdd.RDD[String] = ParallelCollectionRDD[0] at parallelize at <console>:29
+
+scala> val orderRDD1 = orderRDD.map(str => {
+          (str.split(",")(0).toInt,str.split(",")(1).toString,str.split(",")(3).toString)
+      })
+orderRDD1: org.apache.spark.rdd.RDD[(Int, String, String)] = MapPartitionsRDD[13] at map at <console>:31
+
+scala> orderRDD1.take(5).foreach(println)
+18/03/23 22:12:04 WARN scheduler.TaskSetManager: Stage 2 contains a task of very large size (3066 KB). The maximum recommended task size is 100 KB.
+(1,2013-07-25 00:00:00.0,CLOSED)
+(2,2013-07-25 00:00:00.0,PENDING_PAYMENT)
+(3,2013-07-25 00:00:00.0,COMPLETE)
+(4,2013-07-25 00:00:00.0,CLOSED)
+(5,2013-07-25 00:00:00.0,COMPLETE)
+
+scala> val orderDF = orderRDD1.toDF("order_id","order_date","order_status")
+orderDF: org.apache.spark.sql.DataFrame = [order_id: int, order_date: string, order_status: string]
+
+scala> orderDF.show(5)
+18/03/23 22:36:41 WARN scheduler.TaskSetManager: Stage 6 contains a task of very large size (3066 KB). The maximum recommended task size is 100 KB.
++--------+--------------------+---------------+
+|order_id|          order_date|   order_status|
++--------+--------------------+---------------+
+|       1|2013-07-25 00:00:...|         CLOSED|
+|       2|2013-07-25 00:00:...|PENDING_PAYMENT|
+|       3|2013-07-25 00:00:...|       COMPLETE|
+|       4|2013-07-25 00:00:...|         CLOSED|
+|       5|2013-07-25 00:00:...|       COMPLETE|
++--------+--------------------+---------------+
+only showing top 5 rows
+
+
+----------------------------------------------------------------------------------------------------------
+
+order_item_id, order_item_number, order_item_product_id, order_item_quantity, order_item_subtotal, order_item_product_price
+
+scala> val orderItemsRaw = scala.io.Source.fromFile("/home/cloudera/workspace/training/JuleeFolder/retail_DB/order_items/part-00000.txt").getLines.toList
+orderItemsRaw: List[String] = List(1,1,957,1,299.98,299.98, 2,2,1073,1,199.99,199.99, 3,2,502,5,250.0,50.0, 4,2,403,1,129.99,129.99, 5,4,897,2,49.98,24.99, 6,4,365,5,299.95,59.99, 7,4,502,3,150.0,50.0, 8,4,1014,4,199.92,49.98, 9,5,957,1,299.98,299.98, 10,5,365,5,299.95,59.99, 11,5,1014,2,99.96,49.98, 12,5,957,1,299.98,299.98, 13,5,403,1,129.99,129.99, 14,7,1073,1,199.99,199.99, 15,7,957,1,299.98,299.98, 16,7,926,5,79.95,15.99, 17,8,365,3,179.97,59.99, 18,8,365,5,299.95,59.99, 19,8,1014,4,199.92,49.98, 20,8,502,1,50.0,50.0, 21,9,191,2,199.98,99.99, 22,9,1073,1,199.99,199.99, 23,9,1073,1,199.99,199.99, 24,10,1073,1,199.99,199.99, 25,10,1014,2,99.96,49.98, 26,10,403,1,129.99,129.99, 27,10,917,1,21.99,21.99, 28,10,1073,1,199.99,199.99, 29,11,365,1,59.99,59.99, 30,11,627,4,159.96,39.99, 31,1...
+
+scala> val orderItemsRDD = sc.parallelize(orderItemsRaw)
+orderItemsRDD: org.apache.spark.rdd.RDD[String] = ParallelCollectionRDD[15] at parallelize at <console>:29
+
+scala> val orderItemsRDD1 = orderItemsRDD.map(str => {
+          (str.split(",")(0),str.split(",")(2),str.split(",")(4))
+      })
+orderItemsRDD1: org.apache.spark.rdd.RDD[(String, String, String)] = MapPartitionsRDD[16] at map at <console>:31
+
+scala> orderItemsRDD1.take(5).foreach(println)
+18/03/23 22:32:34 WARN scheduler.TaskSetManager: Stage 4 contains a task of very large size (5620 KB). The maximum recommended task size is 100 KB.
+(1,957,299.98)
+(2,1073,199.99)
+(3,502,250.0)
+(4,403,129.99)
+(5,897,49.98)
+
+scala> val orderItemsDF = orderItemsRDD1.toDF("order_item_id","order_item_product_id","order_item_subtotal")
+orderItemsDF: org.apache.spark.sql.DataFrame = [order_item_id: string, order_item_product_id: string, order_item_subtotal: string]
+
+scala> orderItemsDF.show(5)
+18/03/23 22:35:34 WARN scheduler.TaskSetManager: Stage 5 contains a task of very large size (5620 KB). The maximum recommended task size is 100 KB.
++-------------+---------------------+-------------------+
+|order_item_id|order_item_product_id|order_item_subtotal|
++-------------+---------------------+-------------------+
+|            1|                  957|             299.98|
+|            2|                 1073|             199.99|
+|            3|                  502|              250.0|
+|            4|                  403|             129.99|
+|            5|                  897|              49.98|
++-------------+---------------------+-------------------+
+only showing top 5 rows
+
+
+-------------------------------------------------------------------------------------
+product_id, product_category, product_name, product_description, product_price, product_url
+
+scala> val productRaw = scala.io.Source.fromFile("/home/cloudera/workspace/training/JuleeFolder/retail_DB/products/part-00000.txt").getLines.toList
+productRaw: List[String] = List(1,2,Quest Q64 10 FT. x 10 FT. Slant Leg Instant U,,59.98,http://images.acmesports.sports/Quest+Q64+10+FT.+x+10+FT.+Slant+Leg+Instant+Up+Canopy, 2,2,Under Armour Men's Highlight MC Football Clea,,129.99,http://images.acmesports.sports/Under+Armour+Men%27s+Highlight+MC+Football+Cleat, 3,2,Under Armour Men's Renegade D Mid Football Cl,,89.99,http://images.acmesports.sports/Under+Armour+Men%27s+Renegade+D+Mid+Football+Cleat, 4,2,Under Armour Men's Renegade D Mid Football Cl,,89.99,http://images.acmesports.sports/Under+Armour+Men%27s+Renegade+D+Mid+Football+Cleat, 5,2,Riddell Youth Revolution Speed Custom Footbal,,199.99,http://images.acmesports.sports/Riddell+Youth+Revolution+Speed+Custom+Football+Helmet, 6,2,Jordan Men's VI Retro TD Football Cleat,,134.99,ht...
+
+scala> val productRDD = sc.parallelize(productRaw)
+productRDD: org.apache.spark.rdd.RDD[String] = ParallelCollectionRDD[24] at parallelize at <console>:29
+
+scala> val productRDD1 = productRDD.map(str => {
+     |           (str.split(",")(0),str.split(",")(2))
+     |       })
+productRDD1: org.apache.spark.rdd.RDD[(String, String)] = MapPartitionsRDD[13] at map at <console>:31
+
+scala> productRDD1.take(5).foreach(println)
+18/03/23 22:53:00 WARN scheduler.TaskSetManager: Stage 8 contains a task of very large size (174 KB). The maximum recommended task size is 100 KB.
+(1,Quest Q64 10 FT. x 10 FT. Slant Leg Instant U)
+(2,Under Armour Men's Highlight MC Football Clea)
+(3,Under Armour Men's Renegade D Mid Football Cl)
+(4,Under Armour Men's Renegade D Mid Football Cl)
+(5,Riddell Youth Revolution Speed Custom Footbal)
+
+scala> val productDF = productRDD1.toDF("product_id","product_name")
+productDF: org.apache.spark.sql.DataFrame = [product_id: string, product_name: string]
+
+scala> productDF.show(5)
+18/03/23 22:55:41 WARN scheduler.TaskSetManager: Stage 9 contains a task of very large size (174 KB). The maximum recommended task size is 100 KB.
++----------+--------------------+
+|product_id|        product_name|
++----------+--------------------+
+|         1|Quest Q64 10 FT. ...|
+|         2|Under Armour Men'...|
+|         3|Under Armour Men'...|
+|         4|Under Armour Men'...|
+|         5|Riddell Youth Rev...|
++----------+--------------------+
+only showing top 5 rows
+
+---------------------------------------------------------
+Register all three Dataframes as temp table
+----------------------------------------------------------
+scala> orderDF.registerTempTable("order")
+
+scala> orderItemsDF.registerTempTable("order_items")
+
+scala> productDF.registerTempTable("product")
+
+
+scala> sqlContext.setConf("spark.sql.shuffle.partitions","2")
+sqlContext.sql("select o.order_date, p.product_name, sum(oi.order_item_subtotal) daily_revenue_per_product " +
+     "FROM order o JOIN order_items oi " +
+     "ON o.order_id = oi.order_item_id " +
+     "JOIN product p ON p.product_id = oi.order_item_product_id " +
+     "WHERE o.order_status IN ('COMPLETE','CLOSED') " +
+     "GROUP BY o.order_date, p.product_name "+
+     "ORDER BY o.order_date,daily_revenue_per_product desc").
+     show
+
++--------------------+--------------------+-------------------------+           
+|          order_date|        product_name|daily_revenue_per_product|
++--------------------+--------------------+-------------------------+
+|2013-07-25 00:00:...|Pelican Sunstream...|                  1599.92|
+|2013-07-25 00:00:...|Nike Men's Dri-FI...|                   1550.0|
+|2013-07-25 00:00:...|Nike Men's CJ Eli...|                  1429.89|
+|2013-07-25 00:00:...|Perfect Fitness P...|                  1259.79|
+|2013-07-25 00:00:...|Field & Stream Sp...|                  1199.94|
+|2013-07-25 00:00:...|Diamondback Women...|                  1199.92|
+|2013-07-25 00:00:...|Nike Men's Free 5...|                    999.9|
+|2013-07-25 00:00:...|O'Brien Men's Neo...|                   799.68|
+|2013-07-25 00:00:...|Under Armour Girl...|       439.89000000000004|
+|2013-07-25 00:00:...|Under Armour Wome...|                   127.96|
+|2013-07-25 00:00:...|Nike Women's Lege...|                    100.0|
+|2013-07-25 00:00:...|Team Golf St. Lou...|                    99.96|
+|2013-07-25 00:00:...|Bridgestone e6 St...|                    95.97|
+|2013-07-25 00:00:...|Team Golf Texas L...|                    74.97|
+|2013-07-25 00:00:...|Team Golf New Eng...|                    49.98|
+|2013-07-26 00:00:...|Field & Stream Sp...|        4399.780000000001|
+|2013-07-26 00:00:...|Perfect Fitness P...|        3779.369999999999|
+|2013-07-26 00:00:...|Diamondback Women...|                  2099.86|
+|2013-07-26 00:00:...|O'Brien Men's Neo...|       2099.1600000000003|
+|2013-07-26 00:00:...|Nike Men's CJ Eli...|                  2079.84|
++--------------------+--------------------+-------------------------+
+only showing top 20 rows
